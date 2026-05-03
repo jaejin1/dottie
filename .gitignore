@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Claude Code 작업 메모 (개인 플래닝)
+.claude/plans/

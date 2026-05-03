@@ -39,30 +39,12 @@ class AnimationState with _$AnimationState {
   }) = _AnimationState;
 }
 
-// DayLog ID로 dots 로드 → AnimationSequence 빌드
+// DayLog ID로 서버에서 dots 로드 → AnimationSequence 빌드
 @riverpod
 Future<AnimationSequence> animationSequence(Ref ref, String dayLogId) async {
   final repo = ref.watch(dotRepositoryProvider);
-  final dayLog = await repo.getDayLogByDate(DateTime.now()); // 실제론 ID로 조회
-  final dots = dayLog?.dots ?? _mockDots(); // BE 미완이므로 목업 fallback
+  final dots = await repo.getDayLogDots(dayLogId) ?? [];
   return AnimationBuilder.build(dots);
-}
-
-// 목업 데이터 (BE Phase 3 완료 전 테스트용)
-List<Dot> _mockDots() {
-  final base = DateTime.now().copyWith(hour: 9, minute: 0, second: 0);
-  return [
-    Dot(id: '1', latitude: 37.5665, longitude: 126.9780, timestamp: base,
-        placeName: '서울역', placeCategory: null, dayLogId: 'mock'),
-    Dot(id: '2', latitude: 37.5519, longitude: 126.9918, timestamp: base.add(const Duration(hours: 1, minutes: 30)),
-        placeName: '명동', placeCategory: 'restaurant', dayLogId: 'mock'),
-    Dot(id: '3', latitude: 37.5706, longitude: 126.9910, timestamp: base.add(const Duration(hours: 3)),
-        placeName: '경복궁', placeCategory: 'park', dayLogId: 'mock'),
-    Dot(id: '4', latitude: 37.5779, longitude: 126.9770, timestamp: base.add(const Duration(hours: 5)),
-        placeName: '인사동 카페', placeCategory: 'cafe', dayLogId: 'mock'),
-    Dot(id: '5', latitude: 37.5665, longitude: 126.9780, timestamp: base.add(const Duration(hours: 8)),
-        placeName: '서울역', placeCategory: null, dayLogId: 'mock'),
-  ];
 }
 
 // 애니메이션 재생 상태 관리
@@ -72,7 +54,10 @@ class AnimationController extends _$AnimationController {
   double _lastTimestamp = 0;
 
   @override
-  AnimationState? build(String dayLogId) => null;
+  AnimationState? build(String dayLogId) {
+    ref.onDispose(() => _ticker?.dispose());
+    return null;
+  }
 
   Future<void> initialize(AnimationSequence sequence) async {
     state = AnimationState(sequence: sequence);
@@ -162,9 +147,4 @@ class AnimationController extends _$AnimationController {
       ..start();
   }
 
-  @override
-  void dispose() {
-    _ticker?.dispose();
-    super.dispose();
-  }
 }

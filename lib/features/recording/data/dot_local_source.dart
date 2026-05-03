@@ -18,20 +18,20 @@ class DotLocalSource {
             ..where((t) => t.isRecording.equals(true)))
           .getSingleOrNull();
 
-  Future<DayLogTableData?> getDayLogByDate(DateTime date) =>
-      _db.getDayLogByDate(date);
+  Future<DayLogTableData?> getDayLogByDate(DateTime date, String userId) =>
+      _db.getDayLogByDate(date, userId);
 
-  Future<String> startDayLog(String userId) async {
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
+  Future<String> startDayLog(String userId, {String? id}) async {
+    final dayLogId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
     final now = DateTime.now();
     await _db.insertDayLog(DayLogTableCompanion.insert(
-      id: id,
+      id: dayLogId,
       userId: userId,
       date: now,
       startedAt: now,
       isRecording: const Value(true),
     ));
-    return id;
+    return dayLogId;
   }
 
   Future<void> endDayLog(String dayLogId) async {
@@ -43,7 +43,38 @@ class DotLocalSource {
     ));
   }
 
-  Future<List<DayLogTableData>> getAllDayLogs() => _db.getAllDayLogs();
+  Future<List<DayLogTableData>> getAllDayLogs(String userId) =>
+      _db.getAllDayLogs(userId);
+
+  Future<void> upsertDayLog(DayLog dayLog) => _db.upsertDayLog(
+        DayLogTableCompanion.insert(
+          id: dayLog.id,
+          userId: dayLog.userId,
+          date: dayLog.date,
+          startedAt: dayLog.startedAt,
+          endedAt: Value(dayLog.endedAt),
+          isRecording: Value(dayLog.isRecording),
+          synced: const Value(true),
+        ),
+      );
+
+  Future<void> upsertDots(List<Dot> dots) async {
+    for (final dot in dots) {
+      await _db.upsertDot(DotTableCompanion.insert(
+        id: dot.id,
+        latitude: dot.latitude,
+        longitude: dot.longitude,
+        timestamp: dot.timestamp,
+        placeName: Value(dot.placeName),
+        placeCategory: Value(dot.placeCategory),
+        photoUrl: Value(dot.photoUrl),
+        memo: Value(dot.memo),
+        emotion: Value(dot.emotion),
+        dayLogId: dot.dayLogId,
+        synced: const Value(true),
+      ));
+    }
+  }
 
   // ── Dot ──
 
@@ -69,6 +100,26 @@ class DotLocalSource {
   Future<List<DotTableData>> getUnsyncedDots() => _db.getUnsyncedDots();
 
   Future<void> markDotSynced(String dotId) => _db.markDotSynced(dotId);
+
+  Future<void> deleteDayLog(String id) async {
+    await _db.deleteDotsByDayLog(id);
+    await _db.deleteDayLog(id);
+  }
+
+  /// 서버 dayLogId로 로컬 daylog가 없으면 생성 (upsert)
+  Future<void> ensureDayLog(String id, DateTime date, String userId) =>
+      _db.upsertDayLog(DayLogTableCompanion.insert(
+        id: id,
+        userId: userId,
+        date: date,
+        startedAt: date,
+        synced: const Value(true),
+      ));
+
+  /// 같은 날짜의 임시 daylog 들의 dot 을 canonical 로 이전 + 정리.
+  /// server sync 직후 호출 — 임시 daylog (`local_*`) 흔적을 합침.
+  Future<int> mergeOrphanDayLogs(String canonicalId, DateTime date) =>
+      _db.mergeOrphanDayLogs(canonicalId, date);
 
   // DotTableData → Dot 변환
   Dot dotFromRow(DotTableData row) => Dot(
@@ -98,6 +149,10 @@ class DotLocalSource {
       );
 }
 
+// AppDatabase 싱글턴 — keepAlive로 앱 생애주기 동안 단 하나만 존재
+@Riverpod(keepAlive: true)
+AppDatabase appDatabase(Ref ref) => AppDatabase();
+
 @riverpod
 DotLocalSource dotLocalSource(Ref ref) =>
-    DotLocalSource(AppDatabase());
+    DotLocalSource(ref.watch(appDatabaseProvider));

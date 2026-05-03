@@ -19,6 +19,11 @@ class AppConfig {
     defaultValue: 'dev',
   );
 
+  static const String kakaoNativeAppKey = String.fromEnvironment(
+    'KAKAO_NATIVE_APP_KEY',
+    defaultValue: '',
+  );
+
   static bool get isDev => env == 'dev';
   static bool get isProd => env == 'prod';
 }

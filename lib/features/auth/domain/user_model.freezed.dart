@@ -21,11 +21,15 @@ DottieUser _$DottieUserFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$DottieUser {
+  @JsonKey(name: 'id')
   String get uid => throw _privateConstructorUsedError;
   String get nickname => throw _privateConstructorUsedError;
-  String get email => throw _privateConstructorUsedError;
-  String? get photoUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'profile_image')
+  String? get profileImage => throw _privateConstructorUsedError;
+  @JsonKey(name: 'character_config')
   CharacterConfig get character => throw _privateConstructorUsedError;
+  String? get provider => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this DottieUser to a JSON map.
@@ -46,12 +50,12 @@ abstract class $DottieUserCopyWith<$Res> {
   ) = _$DottieUserCopyWithImpl<$Res, DottieUser>;
   @useResult
   $Res call({
-    String uid,
+    @JsonKey(name: 'id') String uid,
     String nickname,
-    String email,
-    String? photoUrl,
-    CharacterConfig character,
-    DateTime createdAt,
+    @JsonKey(name: 'profile_image') String? profileImage,
+    @JsonKey(name: 'character_config') CharacterConfig character,
+    String? provider,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 
   $CharacterConfigCopyWith<$Res> get character;
@@ -74,9 +78,9 @@ class _$DottieUserCopyWithImpl<$Res, $Val extends DottieUser>
   $Res call({
     Object? uid = null,
     Object? nickname = null,
-    Object? email = null,
-    Object? photoUrl = freezed,
+    Object? profileImage = freezed,
     Object? character = null,
+    Object? provider = freezed,
     Object? createdAt = null,
   }) {
     return _then(
@@ -89,18 +93,18 @@ class _$DottieUserCopyWithImpl<$Res, $Val extends DottieUser>
                 ? _value.nickname
                 : nickname // ignore: cast_nullable_to_non_nullable
                       as String,
-            email: null == email
-                ? _value.email
-                : email // ignore: cast_nullable_to_non_nullable
-                      as String,
-            photoUrl: freezed == photoUrl
-                ? _value.photoUrl
-                : photoUrl // ignore: cast_nullable_to_non_nullable
+            profileImage: freezed == profileImage
+                ? _value.profileImage
+                : profileImage // ignore: cast_nullable_to_non_nullable
                       as String?,
             character: null == character
                 ? _value.character
                 : character // ignore: cast_nullable_to_non_nullable
                       as CharacterConfig,
+            provider: freezed == provider
+                ? _value.provider
+                : provider // ignore: cast_nullable_to_non_nullable
+                      as String?,
             createdAt: null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
@@ -131,12 +135,12 @@ abstract class _$$DottieUserImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String uid,
+    @JsonKey(name: 'id') String uid,
     String nickname,
-    String email,
-    String? photoUrl,
-    CharacterConfig character,
-    DateTime createdAt,
+    @JsonKey(name: 'profile_image') String? profileImage,
+    @JsonKey(name: 'character_config') CharacterConfig character,
+    String? provider,
+    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 
   @override
@@ -159,9 +163,9 @@ class __$$DottieUserImplCopyWithImpl<$Res>
   $Res call({
     Object? uid = null,
     Object? nickname = null,
-    Object? email = null,
-    Object? photoUrl = freezed,
+    Object? profileImage = freezed,
     Object? character = null,
+    Object? provider = freezed,
     Object? createdAt = null,
   }) {
     return _then(
@@ -174,18 +178,18 @@ class __$$DottieUserImplCopyWithImpl<$Res>
             ? _value.nickname
             : nickname // ignore: cast_nullable_to_non_nullable
                   as String,
-        email: null == email
-            ? _value.email
-            : email // ignore: cast_nullable_to_non_nullable
-                  as String,
-        photoUrl: freezed == photoUrl
-            ? _value.photoUrl
-            : photoUrl // ignore: cast_nullable_to_non_nullable
+        profileImage: freezed == profileImage
+            ? _value.profileImage
+            : profileImage // ignore: cast_nullable_to_non_nullable
                   as String?,
         character: null == character
             ? _value.character
             : character // ignore: cast_nullable_to_non_nullable
                   as CharacterConfig,
+        provider: freezed == provider
+            ? _value.provider
+            : provider // ignore: cast_nullable_to_non_nullable
+                  as String?,
         createdAt: null == createdAt
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
@@ -199,34 +203,37 @@ class __$$DottieUserImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$DottieUserImpl implements _DottieUser {
   const _$DottieUserImpl({
-    required this.uid,
+    @JsonKey(name: 'id') required this.uid,
     required this.nickname,
-    required this.email,
-    this.photoUrl,
-    this.character = const CharacterConfig(),
-    required this.createdAt,
+    @JsonKey(name: 'profile_image') this.profileImage,
+    @JsonKey(name: 'character_config') this.character = const CharacterConfig(),
+    this.provider,
+    @JsonKey(name: 'created_at') required this.createdAt,
   });
 
   factory _$DottieUserImpl.fromJson(Map<String, dynamic> json) =>
       _$$DottieUserImplFromJson(json);
 
   @override
+  @JsonKey(name: 'id')
   final String uid;
   @override
   final String nickname;
   @override
-  final String email;
+  @JsonKey(name: 'profile_image')
+  final String? profileImage;
   @override
-  final String? photoUrl;
-  @override
-  @JsonKey()
+  @JsonKey(name: 'character_config')
   final CharacterConfig character;
   @override
+  final String? provider;
+  @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'DottieUser(uid: $uid, nickname: $nickname, email: $email, photoUrl: $photoUrl, character: $character, createdAt: $createdAt)';
+    return 'DottieUser(uid: $uid, nickname: $nickname, profileImage: $profileImage, character: $character, provider: $provider, createdAt: $createdAt)';
   }
 
   @override
@@ -237,11 +244,12 @@ class _$DottieUserImpl implements _DottieUser {
             (identical(other.uid, uid) || other.uid == uid) &&
             (identical(other.nickname, nickname) ||
                 other.nickname == nickname) &&
-            (identical(other.email, email) || other.email == email) &&
-            (identical(other.photoUrl, photoUrl) ||
-                other.photoUrl == photoUrl) &&
+            (identical(other.profileImage, profileImage) ||
+                other.profileImage == profileImage) &&
             (identical(other.character, character) ||
                 other.character == character) &&
+            (identical(other.provider, provider) ||
+                other.provider == provider) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -252,9 +260,9 @@ class _$DottieUserImpl implements _DottieUser {
     runtimeType,
     uid,
     nickname,
-    email,
-    photoUrl,
+    profileImage,
     character,
+    provider,
     createdAt,
   );
 
@@ -274,28 +282,32 @@ class _$DottieUserImpl implements _DottieUser {
 
 abstract class _DottieUser implements DottieUser {
   const factory _DottieUser({
-    required final String uid,
+    @JsonKey(name: 'id') required final String uid,
     required final String nickname,
-    required final String email,
-    final String? photoUrl,
-    final CharacterConfig character,
-    required final DateTime createdAt,
+    @JsonKey(name: 'profile_image') final String? profileImage,
+    @JsonKey(name: 'character_config') final CharacterConfig character,
+    final String? provider,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$DottieUserImpl;
 
   factory _DottieUser.fromJson(Map<String, dynamic> json) =
       _$DottieUserImpl.fromJson;
 
   @override
+  @JsonKey(name: 'id')
   String get uid;
   @override
   String get nickname;
   @override
-  String get email;
+  @JsonKey(name: 'profile_image')
+  String? get profileImage;
   @override
-  String? get photoUrl;
-  @override
+  @JsonKey(name: 'character_config')
   CharacterConfig get character;
   @override
+  String? get provider;
+  @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
   /// Create a copy of DottieUser
@@ -312,8 +324,11 @@ CharacterConfig _$CharacterConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$CharacterConfig {
+  @JsonKey(name: 'color_key')
   String get colorKey => throw _privateConstructorUsedError;
+  @JsonKey(name: 'accessory')
   String get accessoryKey => throw _privateConstructorUsedError;
+  @JsonKey(name: 'expression')
   String get expressionKey => throw _privateConstructorUsedError;
 
   /// Serializes this CharacterConfig to a JSON map.
@@ -333,7 +348,11 @@ abstract class $CharacterConfigCopyWith<$Res> {
     $Res Function(CharacterConfig) then,
   ) = _$CharacterConfigCopyWithImpl<$Res, CharacterConfig>;
   @useResult
-  $Res call({String colorKey, String accessoryKey, String expressionKey});
+  $Res call({
+    @JsonKey(name: 'color_key') String colorKey,
+    @JsonKey(name: 'accessory') String accessoryKey,
+    @JsonKey(name: 'expression') String expressionKey,
+  });
 }
 
 /// @nodoc
@@ -384,7 +403,11 @@ abstract class _$$CharacterConfigImplCopyWith<$Res>
   ) = __$$CharacterConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String colorKey, String accessoryKey, String expressionKey});
+  $Res call({
+    @JsonKey(name: 'color_key') String colorKey,
+    @JsonKey(name: 'accessory') String accessoryKey,
+    @JsonKey(name: 'expression') String expressionKey,
+  });
 }
 
 /// @nodoc
@@ -428,22 +451,22 @@ class __$$CharacterConfigImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$CharacterConfigImpl implements _CharacterConfig {
   const _$CharacterConfigImpl({
-    this.colorKey = 'blue',
-    this.accessoryKey = 'none',
-    this.expressionKey = 'default',
+    @JsonKey(name: 'color_key') this.colorKey = 'blue',
+    @JsonKey(name: 'accessory') this.accessoryKey = 'none',
+    @JsonKey(name: 'expression') this.expressionKey = 'default',
   });
 
   factory _$CharacterConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterConfigImplFromJson(json);
 
   @override
-  @JsonKey()
+  @JsonKey(name: 'color_key')
   final String colorKey;
   @override
-  @JsonKey()
+  @JsonKey(name: 'accessory')
   final String accessoryKey;
   @override
-  @JsonKey()
+  @JsonKey(name: 'expression')
   final String expressionKey;
 
   @override
@@ -488,19 +511,22 @@ class _$CharacterConfigImpl implements _CharacterConfig {
 
 abstract class _CharacterConfig implements CharacterConfig {
   const factory _CharacterConfig({
-    final String colorKey,
-    final String accessoryKey,
-    final String expressionKey,
+    @JsonKey(name: 'color_key') final String colorKey,
+    @JsonKey(name: 'accessory') final String accessoryKey,
+    @JsonKey(name: 'expression') final String expressionKey,
   }) = _$CharacterConfigImpl;
 
   factory _CharacterConfig.fromJson(Map<String, dynamic> json) =
       _$CharacterConfigImpl.fromJson;
 
   @override
+  @JsonKey(name: 'color_key')
   String get colorKey;
   @override
+  @JsonKey(name: 'accessory')
   String get accessoryKey;
   @override
+  @JsonKey(name: 'expression')
   String get expressionKey;
 
   /// Create a copy of CharacterConfig

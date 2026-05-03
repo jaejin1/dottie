@@ -11,8 +11,8 @@ class AnimationBuilder {
 
   static AnimationSequence build(List<Dot> dots) {
     if (dots.isEmpty) {
-      return const AnimationSequence(
-        frames: [],
+      return AnimationSequence(
+        frames: const [],
         startTime: _epoch,
         endTime: _epoch,
         totalDurationMs: 0,
@@ -122,5 +122,5 @@ class AnimationBuilder {
 
   static double _lerp(double a, double b, double t) => a + (b - a) * t;
 
-  static const _epoch = DateTime.utc(2000);
+  static final _epoch = DateTime.utc(2000);
 }

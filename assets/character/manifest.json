@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "frame_size": { "w": 32, "h": 32 },
+  "frame_count": 5,
+  "_comment": "BE 화이트리스트와 1:1 일치. 변경 시 BE에도 반영 필수.",
+  "parts": {
+    "skin": [
+      { "id": "skin_01", "name": "기본",   "asset": "assets/character/skin/skin_01.png" },
+      { "id": "skin_02", "name": "라이트", "asset": "assets/character/skin/skin_02.png" },
+      { "id": "skin_03", "name": "탠",     "asset": "assets/character/skin/skin_03.png" },
+      { "id": "skin_04", "name": "다크",   "asset": "assets/character/skin/skin_04.png" }
+    ],
+    "hair_back": [],
+    "hair_front": [
+      { "id": "hair_basic",     "name": "기본",       "asset": "assets/character/hair_front/hair_basic.png", "tintable": true },
+      { "id": "hair_short",     "name": "숏컷",       "asset": "assets/character/hair_front/hair_short.png", "tintable": true },
+      { "id": "hair_long",      "name": "긴머리",     "asset": "assets/character/hair_front/hair_long.png", "tintable": true },
+      { "id": "hair_curly",     "name": "곱슬",       "asset": "assets/character/hair_front/hair_curly.png", "tintable": true },
+      { "id": "hair_bald",      "name": "민머리",     "asset": "assets/character/hair_front/hair_bald.png", "tintable": false },
+      { "id": "hair_ponytail",  "name": "포니테일",   "asset": "assets/character/hair_front/hair_ponytail.png", "tintable": true }
+    ],
+    "face": [
+      {
+        "id": "face_round",
+        "name": "둥근형",
+        "asset": "assets/character/face/face_round_default.png",
+        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
+      },
+      {
+        "id": "face_oval",
+        "name": "계란형",
+        "asset": "assets/character/face/face_oval_default.png",
+        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
+      },
+      {
+        "id": "face_square",
+        "name": "각진형",
+        "asset": "assets/character/face/face_square_default.png",
+        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
+      }
+    ],
+    "top": [
+      { "id": "top_tee",     "name": "티셔츠",   "asset": "assets/character/top/top_tee.png", "tintable": true },
+      { "id": "top_hoodie",  "name": "후드",     "asset": "assets/character/top/top_hoodie.png", "tintable": true },
+      { "id": "top_jacket",  "name": "재킷",     "asset": "assets/character/top/top_jacket.png", "tintable": true },
+      { "id": "top_shirt",   "name": "셔츠",     "asset": "assets/character/top/top_shirt.png", "tintable": true },
+      { "id": "top_sweater", "name": "스웨터",   "asset": "assets/character/top/top_sweater.png", "tintable": true }
+    ],
+    "bottom": [
+      { "id": "bottom_jeans",   "name": "청바지", "asset": "assets/character/bottom/bottom_jeans.png", "tintable": true },
+      { "id": "bottom_shorts",  "name": "반바지", "asset": "assets/character/bottom/bottom_shorts.png", "tintable": true },
+      { "id": "bottom_skirt",   "name": "치마",   "asset": "assets/character/bottom/bottom_skirt.png", "tintable": true },
+      { "id": "bottom_slacks",  "name": "슬랙스", "asset": "assets/character/bottom/bottom_slacks.png", "tintable": true }
+    ],
+    "shoes": [
+      { "id": "shoes_sneaker", "name": "스니커즈", "asset": "assets/character/shoes/shoes_sneaker.png" },
+      { "id": "shoes_boots",   "name": "부츠",     "asset": "assets/character/shoes/shoes_boots.png" },
+      { "id": "shoes_sandal",  "name": "샌들",     "asset": "assets/character/shoes/shoes_sandal.png" },
+      { "id": "shoes_loafer",  "name": "로퍼",     "asset": "assets/character/shoes/shoes_loafer.png" }
+    ],
+    "accessory": [
+      { "id": "none",     "name": "없음",   "asset": "assets/character/accessory/none.png" },
+      { "id": "glasses",  "name": "안경",   "asset": "assets/character/accessory/glasses.png" },
+      { "id": "hat",      "name": "모자",   "asset": "assets/character/accessory/hat.png" },
+      { "id": "mask",     "name": "마스크", "asset": "assets/character/accessory/mask.png" },
+      { "id": "earring",  "name": "귀걸이", "asset": "assets/character/accessory/earring.png" },
+      { "id": "scarf",    "name": "스카프", "asset": "assets/character/accessory/scarf.png" }
+    ]
+  }
+}

@@ -6,7 +6,24 @@ part of 'recording_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$allDayLogsHash() => r'8a6b8b1b414872a6e56b22f0b032a1367f5ad7a3';
+String _$todayDayLogHash() => r'd9f33524f92a886cca165ac15c560eb62e6375b7';
+
+/// See also [todayDayLog].
+@ProviderFor(todayDayLog)
+final todayDayLogProvider = AutoDisposeFutureProvider<DayLog?>.internal(
+  todayDayLog,
+  name: r'todayDayLogProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$todayDayLogHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TodayDayLogRef = AutoDisposeFutureProviderRef<DayLog?>;
+String _$allDayLogsHash() => r'81cca795b52ac24dc2bc1662e8ceb5c72906f5a2';
 
 /// See also [allDayLogs].
 @ProviderFor(allDayLogs)
@@ -23,7 +40,7 @@ final allDayLogsProvider = AutoDisposeFutureProvider<List<DayLog>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllDayLogsRef = AutoDisposeFutureProviderRef<List<DayLog>>;
-String _$activeRecordingHash() => r'355a49b978146050d9329f9a2dfc56faf1ae47d5';
+String _$activeRecordingHash() => r'69dd8572780f9a866f3b4f4894f796d50b2a4afe';
 
 /// See also [ActiveRecording].
 @ProviderFor(ActiveRecording)

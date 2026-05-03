@@ -10,13 +10,12 @@ class ApiEndpoints {
   static const String usersMeCharacter = '/users/me/character';
 
   // 기록
-  static const String recordingsStart = '/recordings/start';
-  static const String recordingsEnd = '/recordings/end';
   static const String dots = '/dots';
   static const String dotsBatch = '/dots/batch';
 
   // 하루 기록
   static const String daylogs = '/daylogs';
+  static const String daylogsToday = '/daylogs/today';
   static String daylogById(String id) => '/daylogs/$id';
 
   // 방
@@ -25,6 +24,7 @@ class ApiEndpoints {
   static String roomInvite(String id) => '/rooms/$id/invite';
   static const String roomsJoin = '/rooms/join';
   static String roomLeave(String id) => '/rooms/$id/leave';
+  static String roomDelete(String id) => '/rooms/$id';
 
   // 공유 지도
   static String roomShare(String id) => '/rooms/$id/share';
@@ -32,4 +32,16 @@ class ApiEndpoints {
 
   // 미디어
   static const String mediaUpload = '/media/upload';
+
+  // dot 사진
+  static String dotPhoto(String id) => '/dots/$id/photo';
+
+  // 댓글
+  static String dotComments(String dotId) => '/dots/$dotId/comments';
+  static String commentById(String id) => '/comments/$id';
+
+  // 알림
+  static const String notifications = '/notifications';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
 }

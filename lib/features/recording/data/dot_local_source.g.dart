@@ -6,7 +6,24 @@ part of 'dot_local_source.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dotLocalSourceHash() => r'0f185ad2fd808224dd482d7f2cc1963b9be81294';
+String _$appDatabaseHash() => r'98a09c6cfd43966155dfbdb0787fa18c85438e13';
+
+/// See also [appDatabase].
+@ProviderFor(appDatabase)
+final appDatabaseProvider = Provider<AppDatabase>.internal(
+  appDatabase,
+  name: r'appDatabaseProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$appDatabaseHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AppDatabaseRef = ProviderRef<AppDatabase>;
+String _$dotLocalSourceHash() => r'8328a3ded24bc53ac6876ddcca912e36663824e9';
 
 /// See also [dotLocalSource].
 @ProviderFor(dotLocalSource)

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../domain/animation_frame.dart';
 
 // 캐릭터를 Flutter CustomPainter로 그리고 Uint8List로 변환하는 유틸
@@ -17,6 +17,17 @@ class CharacterRenderer {
     painter.paint(canvas, Size(size, size));
     final picture = recorder.endRecording();
     return picture.toImage(size.toInt(), size.toInt());
+  }
+
+  /// Mapbox PointAnnotation에 직접 사용할 PNG bytes 반환
+  static Future<Uint8List> renderToBytes({
+    required Color color,
+    required CharacterState state,
+    double size = 80,
+  }) async {
+    final img = await render(color: color, state: state, size: size);
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 }
 

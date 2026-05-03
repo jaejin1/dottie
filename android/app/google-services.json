@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "417852363208",
+    "project_id": "dottie-46886",
+    "storage_bucket": "dottie-46886.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417852363208:android:ec053a0c0de7ca7409b0fd",
+        "android_client_info": {
+          "package_name": "com.dottie.dottie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "417852363208-3g7h3rd7r8op657n36aan2dbbbk4jre0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dottie.dottie",
+            "certificate_hash": "5e28070a89f0c0e53026b3eb631e4eeca8456131"
+          }
+        },
+        {
+          "client_id": "417852363208-4dd4r7ro3u1mb1u2q8irmjjrfliss542.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7AHDGoT8YjGg9Y6WqT0be7oySIjxzQ8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "417852363208-4dd4r7ro3u1mb1u2q8irmjjrfliss542.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "417852363208-gs3mhmcmgbba0lhggi75ct0kvv5tn14u.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dottie.dottie"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

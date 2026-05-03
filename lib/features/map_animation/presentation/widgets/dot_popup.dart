@@ -72,6 +72,29 @@ class _DotPopupState extends State<DotPopup>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 사진 썸네일
+                if (widget.dot.photoUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusSm),
+                    child: Image.network(
+                      widget.dot.photoUrl!,
+                      width: double.infinity,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      loadingBuilder: (_, child, progress) => progress == null
+                          ? child
+                          : const SizedBox(
+                              height: 120,
+                              child: Center(
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2)),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: Dimensions.sm),
+                ],
+
                 // 장소명 + 시간
                 Row(
                   children: [
@@ -115,13 +138,11 @@ class _DotPopupState extends State<DotPopup>
                   ),
                 ],
 
-                // 화살표 (말풍선 꼬리 표시용)
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text('닫기',
                       style: TextStyle(
-                          fontSize: 10,
-                          color: DottieColors.textHint)),
+                          fontSize: 10, color: DottieColors.textHint)),
                 ),
               ],
             ),

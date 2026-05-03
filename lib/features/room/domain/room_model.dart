@@ -9,10 +9,11 @@ class Room with _$Room {
   const factory Room({
     required String id,
     required String name,
-    required String ownerId,
+    @JsonKey(name: 'owner_id') required String ownerId,
     @Default([]) List<RoomMember> members,
-    required DateTime createdAt,
-    String? inviteCode,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'invite_code') String? inviteCode,
+    @JsonKey(name: 'shared_dates') @Default([]) List<String> sharedDates,
   }) = _Room;
 
   factory Room.fromJson(Map<String, dynamic> json) => _$RoomFromJson(json);
@@ -21,10 +22,10 @@ class Room with _$Room {
 @freezed
 class RoomMember with _$RoomMember {
   const factory RoomMember({
-    required String userId,
+    @JsonKey(name: 'user_id') required String userId,
     required String nickname,
-    required CharacterConfig character,
-    required DateTime joinedAt,
+    @JsonKey(name: 'character_config') @Default(CharacterConfig()) CharacterConfig character,
+    @JsonKey(name: 'joined_at') required DateTime joinedAt,
   }) = _RoomMember;
 
   factory RoomMember.fromJson(Map<String, dynamic> json) =>

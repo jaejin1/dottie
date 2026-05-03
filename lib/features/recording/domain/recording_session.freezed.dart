@@ -18,7 +18,6 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$RecordingSession {
   String get dayLogId => throw _privateConstructorUsedError;
-  DateTime get startedAt => throw _privateConstructorUsedError;
   List<Dot> get dots => throw _privateConstructorUsedError;
   bool get isCapturingLocation => throw _privateConstructorUsedError;
   String? get error => throw _privateConstructorUsedError;
@@ -39,7 +38,6 @@ abstract class $RecordingSessionCopyWith<$Res> {
   @useResult
   $Res call({
     String dayLogId,
-    DateTime startedAt,
     List<Dot> dots,
     bool isCapturingLocation,
     String? error,
@@ -62,7 +60,6 @@ class _$RecordingSessionCopyWithImpl<$Res, $Val extends RecordingSession>
   @override
   $Res call({
     Object? dayLogId = null,
-    Object? startedAt = null,
     Object? dots = null,
     Object? isCapturingLocation = null,
     Object? error = freezed,
@@ -73,10 +70,6 @@ class _$RecordingSessionCopyWithImpl<$Res, $Val extends RecordingSession>
                 ? _value.dayLogId
                 : dayLogId // ignore: cast_nullable_to_non_nullable
                       as String,
-            startedAt: null == startedAt
-                ? _value.startedAt
-                : startedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
             dots: null == dots
                 ? _value.dots
                 : dots // ignore: cast_nullable_to_non_nullable
@@ -106,7 +99,6 @@ abstract class _$$RecordingSessionImplCopyWith<$Res>
   @useResult
   $Res call({
     String dayLogId,
-    DateTime startedAt,
     List<Dot> dots,
     bool isCapturingLocation,
     String? error,
@@ -128,7 +120,6 @@ class __$$RecordingSessionImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? dayLogId = null,
-    Object? startedAt = null,
     Object? dots = null,
     Object? isCapturingLocation = null,
     Object? error = freezed,
@@ -139,10 +130,6 @@ class __$$RecordingSessionImplCopyWithImpl<$Res>
             ? _value.dayLogId
             : dayLogId // ignore: cast_nullable_to_non_nullable
                   as String,
-        startedAt: null == startedAt
-            ? _value.startedAt
-            : startedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
         dots: null == dots
             ? _value._dots
             : dots // ignore: cast_nullable_to_non_nullable
@@ -165,7 +152,6 @@ class __$$RecordingSessionImplCopyWithImpl<$Res>
 class _$RecordingSessionImpl implements _RecordingSession {
   const _$RecordingSessionImpl({
     required this.dayLogId,
-    required this.startedAt,
     final List<Dot> dots = const [],
     this.isCapturingLocation = false,
     this.error,
@@ -173,8 +159,6 @@ class _$RecordingSessionImpl implements _RecordingSession {
 
   @override
   final String dayLogId;
-  @override
-  final DateTime startedAt;
   final List<Dot> _dots;
   @override
   @JsonKey()
@@ -192,7 +176,7 @@ class _$RecordingSessionImpl implements _RecordingSession {
 
   @override
   String toString() {
-    return 'RecordingSession(dayLogId: $dayLogId, startedAt: $startedAt, dots: $dots, isCapturingLocation: $isCapturingLocation, error: $error)';
+    return 'RecordingSession(dayLogId: $dayLogId, dots: $dots, isCapturingLocation: $isCapturingLocation, error: $error)';
   }
 
   @override
@@ -202,8 +186,6 @@ class _$RecordingSessionImpl implements _RecordingSession {
             other is _$RecordingSessionImpl &&
             (identical(other.dayLogId, dayLogId) ||
                 other.dayLogId == dayLogId) &&
-            (identical(other.startedAt, startedAt) ||
-                other.startedAt == startedAt) &&
             const DeepCollectionEquality().equals(other._dots, _dots) &&
             (identical(other.isCapturingLocation, isCapturingLocation) ||
                 other.isCapturingLocation == isCapturingLocation) &&
@@ -214,7 +196,6 @@ class _$RecordingSessionImpl implements _RecordingSession {
   int get hashCode => Object.hash(
     runtimeType,
     dayLogId,
-    startedAt,
     const DeepCollectionEquality().hash(_dots),
     isCapturingLocation,
     error,
@@ -235,7 +216,6 @@ class _$RecordingSessionImpl implements _RecordingSession {
 abstract class _RecordingSession implements RecordingSession {
   const factory _RecordingSession({
     required final String dayLogId,
-    required final DateTime startedAt,
     final List<Dot> dots,
     final bool isCapturingLocation,
     final String? error,
@@ -243,8 +223,6 @@ abstract class _RecordingSession implements RecordingSession {
 
   @override
   String get dayLogId;
-  @override
-  DateTime get startedAt;
   @override
   List<Dot> get dots;
   @override

@@ -8,38 +8,40 @@ part of 'user_model.dart';
 
 _$DottieUserImpl _$$DottieUserImplFromJson(Map<String, dynamic> json) =>
     _$DottieUserImpl(
-      uid: json['uid'] as String,
+      uid: json['id'] as String,
       nickname: json['nickname'] as String,
-      email: json['email'] as String,
-      photoUrl: json['photoUrl'] as String?,
-      character: json['character'] == null
+      profileImage: json['profile_image'] as String?,
+      character: json['character_config'] == null
           ? const CharacterConfig()
-          : CharacterConfig.fromJson(json['character'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+          : CharacterConfig.fromJson(
+              json['character_config'] as Map<String, dynamic>,
+            ),
+      provider: json['provider'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
 
 Map<String, dynamic> _$$DottieUserImplToJson(_$DottieUserImpl instance) =>
     <String, dynamic>{
-      'uid': instance.uid,
+      'id': instance.uid,
       'nickname': instance.nickname,
-      'email': instance.email,
-      'photoUrl': instance.photoUrl,
-      'character': instance.character,
-      'createdAt': instance.createdAt.toIso8601String(),
+      'profile_image': instance.profileImage,
+      'character_config': instance.character,
+      'provider': instance.provider,
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
 _$CharacterConfigImpl _$$CharacterConfigImplFromJson(
   Map<String, dynamic> json,
 ) => _$CharacterConfigImpl(
-  colorKey: json['colorKey'] as String? ?? 'blue',
-  accessoryKey: json['accessoryKey'] as String? ?? 'none',
-  expressionKey: json['expressionKey'] as String? ?? 'default',
+  colorKey: json['color_key'] as String? ?? 'blue',
+  accessoryKey: json['accessory'] as String? ?? 'none',
+  expressionKey: json['expression'] as String? ?? 'default',
 );
 
 Map<String, dynamic> _$$CharacterConfigImplToJson(
   _$CharacterConfigImpl instance,
 ) => <String, dynamic>{
-  'colorKey': instance.colorKey,
-  'accessoryKey': instance.accessoryKey,
-  'expressionKey': instance.expressionKey,
+  'color_key': instance.colorKey,
+  'accessory': instance.accessoryKey,
+  'expression': instance.expressionKey,
 };

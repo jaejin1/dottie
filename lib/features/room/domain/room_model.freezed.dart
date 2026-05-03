@@ -23,10 +23,15 @@ Room _$RoomFromJson(Map<String, dynamic> json) {
 mixin _$Room {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
+  @JsonKey(name: 'owner_id')
   String get ownerId => throw _privateConstructorUsedError;
   List<RoomMember> get members => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'invite_code')
   String? get inviteCode => throw _privateConstructorUsedError;
+  @JsonKey(name: 'shared_dates')
+  List<String> get sharedDates => throw _privateConstructorUsedError;
 
   /// Serializes this Room to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -45,10 +50,11 @@ abstract class $RoomCopyWith<$Res> {
   $Res call({
     String id,
     String name,
-    String ownerId,
+    @JsonKey(name: 'owner_id') String ownerId,
     List<RoomMember> members,
-    DateTime createdAt,
-    String? inviteCode,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'invite_code') String? inviteCode,
+    @JsonKey(name: 'shared_dates') List<String> sharedDates,
   });
 }
 
@@ -73,6 +79,7 @@ class _$RoomCopyWithImpl<$Res, $Val extends Room>
     Object? members = null,
     Object? createdAt = null,
     Object? inviteCode = freezed,
+    Object? sharedDates = null,
   }) {
     return _then(
       _value.copyWith(
@@ -100,6 +107,10 @@ class _$RoomCopyWithImpl<$Res, $Val extends Room>
                 ? _value.inviteCode
                 : inviteCode // ignore: cast_nullable_to_non_nullable
                       as String?,
+            sharedDates: null == sharedDates
+                ? _value.sharedDates
+                : sharedDates // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
           )
           as $Val,
     );
@@ -117,10 +128,11 @@ abstract class _$$RoomImplCopyWith<$Res> implements $RoomCopyWith<$Res> {
   $Res call({
     String id,
     String name,
-    String ownerId,
+    @JsonKey(name: 'owner_id') String ownerId,
     List<RoomMember> members,
-    DateTime createdAt,
-    String? inviteCode,
+    @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'invite_code') String? inviteCode,
+    @JsonKey(name: 'shared_dates') List<String> sharedDates,
   });
 }
 
@@ -142,6 +154,7 @@ class __$$RoomImplCopyWithImpl<$Res>
     Object? members = null,
     Object? createdAt = null,
     Object? inviteCode = freezed,
+    Object? sharedDates = null,
   }) {
     return _then(
       _$RoomImpl(
@@ -169,6 +182,10 @@ class __$$RoomImplCopyWithImpl<$Res>
             ? _value.inviteCode
             : inviteCode // ignore: cast_nullable_to_non_nullable
                   as String?,
+        sharedDates: null == sharedDates
+            ? _value._sharedDates
+            : sharedDates // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
       ),
     );
   }
@@ -180,11 +197,13 @@ class _$RoomImpl implements _Room {
   const _$RoomImpl({
     required this.id,
     required this.name,
-    required this.ownerId,
+    @JsonKey(name: 'owner_id') required this.ownerId,
     final List<RoomMember> members = const [],
-    required this.createdAt,
-    this.inviteCode,
-  }) : _members = members;
+    @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'invite_code') this.inviteCode,
+    @JsonKey(name: 'shared_dates') final List<String> sharedDates = const [],
+  }) : _members = members,
+       _sharedDates = sharedDates;
 
   factory _$RoomImpl.fromJson(Map<String, dynamic> json) =>
       _$$RoomImplFromJson(json);
@@ -194,6 +213,7 @@ class _$RoomImpl implements _Room {
   @override
   final String name;
   @override
+  @JsonKey(name: 'owner_id')
   final String ownerId;
   final List<RoomMember> _members;
   @override
@@ -205,13 +225,23 @@ class _$RoomImpl implements _Room {
   }
 
   @override
+  @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
+  @JsonKey(name: 'invite_code')
   final String? inviteCode;
+  final List<String> _sharedDates;
+  @override
+  @JsonKey(name: 'shared_dates')
+  List<String> get sharedDates {
+    if (_sharedDates is EqualUnmodifiableListView) return _sharedDates;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_sharedDates);
+  }
 
   @override
   String toString() {
-    return 'Room(id: $id, name: $name, ownerId: $ownerId, members: $members, createdAt: $createdAt, inviteCode: $inviteCode)';
+    return 'Room(id: $id, name: $name, ownerId: $ownerId, members: $members, createdAt: $createdAt, inviteCode: $inviteCode, sharedDates: $sharedDates)';
   }
 
   @override
@@ -226,7 +256,11 @@ class _$RoomImpl implements _Room {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.inviteCode, inviteCode) ||
-                other.inviteCode == inviteCode));
+                other.inviteCode == inviteCode) &&
+            const DeepCollectionEquality().equals(
+              other._sharedDates,
+              _sharedDates,
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -239,6 +273,7 @@ class _$RoomImpl implements _Room {
     const DeepCollectionEquality().hash(_members),
     createdAt,
     inviteCode,
+    const DeepCollectionEquality().hash(_sharedDates),
   );
 
   /// Create a copy of Room
@@ -259,10 +294,11 @@ abstract class _Room implements Room {
   const factory _Room({
     required final String id,
     required final String name,
-    required final String ownerId,
+    @JsonKey(name: 'owner_id') required final String ownerId,
     final List<RoomMember> members,
-    required final DateTime createdAt,
-    final String? inviteCode,
+    @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'invite_code') final String? inviteCode,
+    @JsonKey(name: 'shared_dates') final List<String> sharedDates,
   }) = _$RoomImpl;
 
   factory _Room.fromJson(Map<String, dynamic> json) = _$RoomImpl.fromJson;
@@ -272,13 +308,19 @@ abstract class _Room implements Room {
   @override
   String get name;
   @override
+  @JsonKey(name: 'owner_id')
   String get ownerId;
   @override
   List<RoomMember> get members;
   @override
+  @JsonKey(name: 'created_at')
   DateTime get createdAt;
   @override
+  @JsonKey(name: 'invite_code')
   String? get inviteCode;
+  @override
+  @JsonKey(name: 'shared_dates')
+  List<String> get sharedDates;
 
   /// Create a copy of Room
   /// with the given fields replaced by the non-null parameter values.
@@ -294,9 +336,12 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$RoomMember {
+  @JsonKey(name: 'user_id')
   String get userId => throw _privateConstructorUsedError;
   String get nickname => throw _privateConstructorUsedError;
+  @JsonKey(name: 'character_config')
   CharacterConfig get character => throw _privateConstructorUsedError;
+  @JsonKey(name: 'joined_at')
   DateTime get joinedAt => throw _privateConstructorUsedError;
 
   /// Serializes this RoomMember to a JSON map.
@@ -317,10 +362,10 @@ abstract class $RoomMemberCopyWith<$Res> {
   ) = _$RoomMemberCopyWithImpl<$Res, RoomMember>;
   @useResult
   $Res call({
-    String userId,
+    @JsonKey(name: 'user_id') String userId,
     String nickname,
-    CharacterConfig character,
-    DateTime joinedAt,
+    @JsonKey(name: 'character_config') CharacterConfig character,
+    @JsonKey(name: 'joined_at') DateTime joinedAt,
   });
 
   $CharacterConfigCopyWith<$Res> get character;
@@ -390,10 +435,10 @@ abstract class _$$RoomMemberImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String userId,
+    @JsonKey(name: 'user_id') String userId,
     String nickname,
-    CharacterConfig character,
-    DateTime joinedAt,
+    @JsonKey(name: 'character_config') CharacterConfig character,
+    @JsonKey(name: 'joined_at') DateTime joinedAt,
   });
 
   @override
@@ -446,22 +491,25 @@ class __$$RoomMemberImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$RoomMemberImpl implements _RoomMember {
   const _$RoomMemberImpl({
-    required this.userId,
+    @JsonKey(name: 'user_id') required this.userId,
     required this.nickname,
-    required this.character,
-    required this.joinedAt,
+    @JsonKey(name: 'character_config') this.character = const CharacterConfig(),
+    @JsonKey(name: 'joined_at') required this.joinedAt,
   });
 
   factory _$RoomMemberImpl.fromJson(Map<String, dynamic> json) =>
       _$$RoomMemberImplFromJson(json);
 
   @override
+  @JsonKey(name: 'user_id')
   final String userId;
   @override
   final String nickname;
   @override
+  @JsonKey(name: 'character_config')
   final CharacterConfig character;
   @override
+  @JsonKey(name: 'joined_at')
   final DateTime joinedAt;
 
   @override
@@ -504,22 +552,25 @@ class _$RoomMemberImpl implements _RoomMember {
 
 abstract class _RoomMember implements RoomMember {
   const factory _RoomMember({
-    required final String userId,
+    @JsonKey(name: 'user_id') required final String userId,
     required final String nickname,
-    required final CharacterConfig character,
-    required final DateTime joinedAt,
+    @JsonKey(name: 'character_config') final CharacterConfig character,
+    @JsonKey(name: 'joined_at') required final DateTime joinedAt,
   }) = _$RoomMemberImpl;
 
   factory _RoomMember.fromJson(Map<String, dynamic> json) =
       _$RoomMemberImpl.fromJson;
 
   @override
+  @JsonKey(name: 'user_id')
   String get userId;
   @override
   String get nickname;
   @override
+  @JsonKey(name: 'character_config')
   CharacterConfig get character;
   @override
+  @JsonKey(name: 'joined_at')
   DateTime get joinedAt;
 
   /// Create a copy of RoomMember

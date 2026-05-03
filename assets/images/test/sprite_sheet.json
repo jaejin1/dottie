@@ -1,0 +1,44 @@
+{
+  "sprites": [
+    {
+      "fileName": "token_02.png",
+      "width": 340,
+      "height": 340,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "fileName": "token_01.png",
+      "width": 344,
+      "height": 344,
+      "x": 340,
+      "y": 0
+    },
+    {
+      "fileName": "token_05.png",
+      "width": 325,
+      "height": 325,
+      "x": 684,
+      "y": 0
+    },
+    {
+      "fileName": "token_04.png",
+      "width": 329,
+      "height": 329,
+      "x": 1009,
+      "y": 0
+    },
+    {
+      "fileName": "token_06.png",
+      "width": 327,
+      "height": 327,
+      "x": 1338,
+      "y": 0
+    }
+  ],
+  "packMode": "horizontal",
+  "padding": 0,
+  "backgroundColor": "rgba(0, 0, 0, 0)",
+  "spriteSheetWidth": 1665,
+  "spriteSheetHeight": 344
+}

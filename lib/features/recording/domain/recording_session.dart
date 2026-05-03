@@ -7,7 +7,6 @@ part 'recording_session.freezed.dart';
 class RecordingSession with _$RecordingSession {
   const factory RecordingSession({
     required String dayLogId,
-    required DateTime startedAt,
     @Default([]) List<Dot> dots,
     @Default(false) bool isCapturingLocation,
     String? error,

@@ -56,8 +56,10 @@ const Map<String, String> _legacyColorMap = {
 };
 
 /// 레거시 액세서리 키 → 새 BE 화이트리스트 ID.
+/// BE v2 마이그레이션 후 화이트리스트가 'none' 단 1개로 축소됨.
+/// 옛 'glasses'/'hat' 값이 들어와도 안전하게 'none'으로 매핑.
 const Map<String, String> _legacyAccessoryMap = {
   'none': 'none',
-  'glasses': 'glasses',
-  'hat': 'hat',
+  'glasses': 'none',
+  'hat': 'none',
 };

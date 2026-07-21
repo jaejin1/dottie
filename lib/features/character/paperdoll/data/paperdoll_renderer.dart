@@ -8,6 +8,10 @@ import '../domain/paperdoll_parts.dart';
 import 'paperdoll_image_cache.dart';
 import 'paperdoll_manifest.dart';
 
+/// LPC universal sprite sheet의 정면(down/south) 방향 행 인덱스.
+/// 시트 구조: row 0=up, 1=left, 2=down(front), 3=right.
+const int kLpcFrontFacingRow = 2;
+
 /// 부위별 PNG를 z-order대로 합성해 단일 프레임 ui.Image / PNG 바이트로 반환.
 ///
 /// 캐릭터 state(walking/idle/sleeping/...)와 PaperdollConfig의 face_expression은
@@ -64,6 +68,7 @@ class PaperdollRenderer {
         outW: outW,
         outH: outH,
         tint: layer.tint,
+        frameRow: kLpcFrontFacingRow,
       );
     }
 
@@ -127,13 +132,21 @@ class PaperdollRenderer {
         return (assetPath: item.assetPath, tint: tint);
 
       case PartType.face:
+        // 명시적 face 항목이 있으면 그것을, 없으면 skin의 headOverlay 자동 사용.
+        // LPC 시트는 body(010)와 head(100)가 분리돼 있어 skin 항목 1개가 두
+        // 레이어를 묶어 표현한다.
         final item = manifest.findById(PartType.face, config.faceId) ??
             manifest.defaultOf(PartType.face);
-        if (item == null) return null;
-        // 표정별 에셋 키가 있으면 치환 (예: face_round_default → face_round_smile)
-        final asset = _faceAssetWithExpression(
-            item.assetPath, config.faceExpression);
-        return (assetPath: asset, tint: null);
+        if (item != null) {
+          final asset = _faceAssetWithExpression(
+              item.assetPath, config.faceExpression);
+          return (assetPath: asset, tint: null);
+        }
+        final skin = manifest.findById(PartType.skin, config.skinId) ??
+            manifest.defaultOf(PartType.skin);
+        final overlay = skin?.headOverlay;
+        if (overlay == null) return null;
+        return (assetPath: overlay, tint: null);
 
       case PartType.top:
         final item = manifest.findById(PartType.top, config.topId) ??
@@ -180,10 +193,14 @@ class PaperdollRenderer {
     required int outW,
     required int outH,
     Color? tint,
+    int frameRow = 0,
   }) {
+    // 시트 범위를 벗어나는 row가 들어와도 안전하게 0으로 클램프.
+    final maxRow = (image.height ~/ frameH) - 1;
+    final safeRow = frameRow.clamp(0, maxRow < 0 ? 0 : maxRow);
     final src = Rect.fromLTWH(
       (frameIndex * frameW).toDouble(),
-      0,
+      (safeRow * frameH).toDouble(),
       frameW.toDouble(),
       frameH.toDouble(),
     );

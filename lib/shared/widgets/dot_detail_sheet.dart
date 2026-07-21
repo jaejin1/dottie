@@ -1,14 +1,23 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/dimensions.dart';
 import '../../core/utils/date_utils.dart';
 import '../../features/auth/presentation/auth_provider.dart';
-import '../../features/comment/domain/comment_model.dart';
 import '../../features/comment/presentation/comment_provider.dart';
+import '../../features/cumulative_map/presentation/cumulative_map_provider.dart';
+import '../../features/recording/data/dot_remote_source.dart';
+import '../../features/recording/data/dot_repository.dart';
 import '../../features/recording/domain/dot_model.dart';
+import '../../features/recording/presentation/recording_provider.dart';
+import '../../features/room/presentation/hidden_dots_provider.dart';
+import '../../features/shared_map/presentation/shared_map_provider.dart';
+import '../../features/timeline/presentation/timeline_provider.dart';
+import 'dot_content_block.dart';
 
 // 멘션 자동완성용 멤버 힌트 — 호출부에서 생성
 class DotMemberHint {
@@ -32,7 +41,15 @@ class DotDetailSheet extends ConsumerStatefulWidget {
     this.memberColor,
     this.showBackButton = false,
     this.roomId,
-    this.members = const [],
+    this.membersByRoomId = const {},
+    this.ownerUserId,
+    this.openInMapRoomIds,
+    this.openInMapRoomNames,
+    this.onOpenInMap,
+    this.hideRoomIds,
+    this.hideRoomNames,
+    this.availableRoomIds,
+    this.roomNameById,
   });
 
   final Dot dot;
@@ -40,7 +57,45 @@ class DotDetailSheet extends ConsumerStatefulWidget {
   final Color? memberColor;
   final bool showBackButton;
   final String? roomId;
-  final List<DotMemberHint> members;
+
+  /// roomId → 멘션 후보 멤버 목록.
+  final Map<String, List<DotMemberHint>> membersByRoomId;
+
+  /// 이 dot 의 소유자 user id (BE UUID).
+  /// null = caller 가 소유자를 모름 — 본인 dot 가정 (today_map / map_animation).
+  /// 값이 있으면 현재 사용자(`currentDottieUser.uid`) 와 비교해 삭제 버튼 노출 결정.
+  final String? ownerUserId;
+
+  /// "지도에서 보기" 액션 노출 조건.
+  /// null 또는 빈 set → 액션 숨김 (본인 비공개 dot / 지도 컨텍스트 등).
+  /// 1개 이상이면 우상단에 아이콘 노출 — 누르면 단일이면 바로, 다수면 선택 시트.
+  /// 콜백 [onOpenInMap] 도 같이 채워야 동작.
+  final Set<String>? openInMapRoomIds;
+
+  /// roomId → 사용자에게 표시할 방 이름. 여러 방 선택 시트 렌더링용.
+  /// 누락된 id 는 "방" 으로 폴백.
+  final Map<String, String>? openInMapRoomNames;
+
+  /// 선택된 roomId 받아서 라우팅. DotDetailSheet 는 라우터 의존성을 안 가짐
+  /// — caller 가 `/rooms/:id/map` 같은 navigation 을 처리.
+  final void Function(String roomId)? onOpenInMap;
+
+  /// "이 방에서 숨기기" 액션의 대상 방 set. 본인 dot 만 의미 있음.
+  ///   - 피드 (cross-room): viewer 가 멤버이고 dot 이 공유된 방 모두 — 여러
+  ///     방 가능. 사용자가 picker 로 어느 방에서 숨길지 선택.
+  ///   - 룸 컨텍스트: 그 방 1개.
+  /// null 이면 fallback 으로 [roomId] (단일) 사용. 둘 다 없으면 숨김 X.
+  /// 빈 set 이면 숨김 X (본인 비공개 dot).
+  final Set<String>? hideRoomIds;
+
+  /// roomId → 방 이름. 다이얼로그 / picker 의 label 용. 누락된 id 는 "방"
+  /// 으로 폴백 — chip 색만이라도 표시되어 어느 방인지 인지 가능.
+  final Map<String, String>? hideRoomNames;
+
+  /// 댓글 멀티룸 지원 — 피드에서 dot 이 여러 방에 공유된 경우.
+  /// 제공 시 댓글 블록에서 룸별 선택 + 뱃지 표시.
+  final Set<String>? availableRoomIds;
+  final Map<String, String>? roomNameById;
 
   static Future<void> show(
     BuildContext context,
@@ -49,7 +104,15 @@ class DotDetailSheet extends ConsumerStatefulWidget {
     Color? memberColor,
     bool showBackButton = false,
     String? roomId,
-    List<DotMemberHint> members = const [],
+    Map<String, List<DotMemberHint>> membersByRoomId = const {},
+    String? ownerUserId,
+    Set<String>? openInMapRoomIds,
+    Map<String, String>? openInMapRoomNames,
+    void Function(String roomId)? onOpenInMap,
+    Set<String>? hideRoomIds,
+    Map<String, String>? hideRoomNames,
+    Set<String>? availableRoomIds,
+    Map<String, String>? roomNameById,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -61,7 +124,15 @@ class DotDetailSheet extends ConsumerStatefulWidget {
         memberColor: memberColor,
         showBackButton: showBackButton,
         roomId: roomId,
-        members: members,
+        membersByRoomId: membersByRoomId,
+        ownerUserId: ownerUserId,
+        openInMapRoomIds: openInMapRoomIds,
+        openInMapRoomNames: openInMapRoomNames,
+        onOpenInMap: onOpenInMap,
+        hideRoomIds: hideRoomIds,
+        hideRoomNames: hideRoomNames,
+        availableRoomIds: availableRoomIds,
+        roomNameById: roomNameById,
       ),
     );
   }
@@ -71,124 +142,367 @@ class DotDetailSheet extends ConsumerStatefulWidget {
 }
 
 class _DotDetailSheetState extends ConsumerState<DotDetailSheet> {
-  final _commentController = TextEditingController();
   final _scrollController = ScrollController();
-  bool _posting = false;
-  String? _mentionQuery; // @ 이후 현재 입력 중인 쿼리
+  bool _deleting = false;
+  bool _hiding = false;
 
-  bool get _hasComments => widget.roomId != null;
+  /// 시트 안에서 보고 있는 dot — 사진 variant 가 비동기로 채워지는 동안
+  /// BE 에서 단발 polling 으로 자체 갱신. caller 가 넘긴 [widget.dot] 은
+  /// 시트 진입 시점의 snapshot 이라 stale 가능 (특히 today_map 의
+  /// activeRecording dot — photo_url 만 있고 thumb/preview 둘 다 null).
+  late Dot _currentDot;
+
+  // ── photo variant polling 안전 장치 ───────────────────────
+  Timer? _photoPollTimer;
+  int _pollAttempt = 0;
+
+  /// 이미 진행 중인 BE 호출 — 중복 실행 방지 (외부에서 _runPoll 직접
+  /// 호출되어도 한 번에 하나만).
+  bool _pollInFlight = false;
+
+  /// 최대 시도 횟수 — 5초 × 6 = 30초 후 자동 종료. variant 워커가 그 안에
+  /// 안 끝나면 사용자에게 "처리에 시간이 걸려요" 표시 후 종료.
+  static const int _maxPollAttempts = 6;
+  static const Duration _pollInterval = Duration(seconds: 5);
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDot = widget.dot;
+    if (_currentDot.isPhotoProcessing) {
+      _scheduleNextPoll(_pollInterval);
+    }
+  }
 
   @override
   void dispose() {
-    _commentController.dispose();
+    _photoPollTimer?.cancel();
+    _photoPollTimer = null;
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onCommentChanged(String text) {
-    final cursor = _commentController.selection.baseOffset;
-    if (cursor < 0) return;
-    final before = text.substring(0, cursor.clamp(0, text.length));
-    final lastAt = before.lastIndexOf('@');
-    if (lastAt == -1) {
-      if (_mentionQuery != null) setState(() => _mentionQuery = null);
-      return;
-    }
-    final query = before.substring(lastAt + 1);
-    if (query.contains(' ') || query.contains('\n')) {
-      if (_mentionQuery != null) setState(() => _mentionQuery = null);
-      return;
-    }
-    if (_mentionQuery != query) setState(() => _mentionQuery = query);
+  /// 다음 polling 단발 예약 — periodic 대신 chain 으로 stack 이 쌓이지 않도록.
+  void _scheduleNextPoll(Duration delay) {
+    if (!mounted) return;
+    if (_pollAttempt >= _maxPollAttempts) return;
+    _photoPollTimer?.cancel();
+    _photoPollTimer = Timer(delay, _runPoll);
   }
 
-  void _insertMention(DotMemberHint member) {
-    final text = _commentController.text;
-    final cursor =
-        _commentController.selection.baseOffset.clamp(0, text.length);
-    final lastAt = text.lastIndexOf('@', cursor);
-    if (lastAt == -1) return;
-    final before = text.substring(0, lastAt);
-    final after = text.substring(cursor);
-    final inserted = '@${member.nickname}';
-    final newText = '$before$inserted $after';
-    _commentController.text = newText;
-    _commentController.selection = TextSelection.collapsed(
-      offset: lastAt + inserted.length + 1,
-    );
-    setState(() => _mentionQuery = null);
-  }
-
-  List<MentionSpan> _extractMentions(String text) {
-    final result = <MentionSpan>[];
-    for (final m in widget.members) {
-      final pattern = '@${m.nickname}';
-      var idx = 0;
-      while (true) {
-        final pos = text.indexOf(pattern, idx);
-        if (pos == -1) break;
-        result.add(MentionSpan(
-          userId: m.userId,
-          nickname: m.nickname,
-          start: pos,
-          end: pos + pattern.length,
-        ));
-        idx = pos + pattern.length;
-      }
-    }
-    return result;
-  }
-
-  Future<void> _postComment() async {
-    final text = _commentController.text.trim();
-    if (text.isEmpty || text.length > 500 || _posting) return;
-    setState(() => _posting = true);
+  Future<void> _runPoll() async {
+    if (!mounted || _pollInFlight) return;
+    _pollInFlight = true;
+    _pollAttempt += 1;
     try {
-      final mentions = _extractMentions(text);
-      await ref
-          .read(commentListProvider(widget.dot.id).notifier)
-          .post(text, mentions);
-      _commentController.clear();
-      setState(() => _mentionQuery = null);
-      // 스크롤 맨 아래로
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-          );
+      final repo = ref.read(dotRepositoryProvider);
+      // 사용자 dot 의 dayLog 전체를 다시 받아 같은 id 의 dot 으로 갱신.
+      final dots = await repo.getDayLogDots(_currentDot.dayLogId);
+      if (!mounted) return;
+      if (dots != null) {
+        Dot? fresh;
+        for (final d in dots) {
+          if (d.id == _currentDot.id) {
+            fresh = d;
+            break;
+          }
         }
-      });
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('댓글 전송에 실패했어요')),
-        );
+        if (fresh != null && fresh != _currentDot) {
+          setState(() => _currentDot = fresh!);
+          if (!fresh.isPhotoProcessing) {
+            // variant 채워짐 — 종료. (사진 없는 dot 으로 BE 가 응답해도 종료)
+            _photoPollTimer?.cancel();
+            _photoPollTimer = null;
+            return;
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('[DotDetail.poll] BE refresh error: $e');
+      // 일시 오류 — 다음 시도까지 대기 (max attempts 도달 시 자연 종료)
     } finally {
-      if (mounted) setState(() => _posting = false);
+      _pollInFlight = false;
     }
+    // 아직 미완 + 시도 가능 → 다음 tick 예약. dispose 됐으면 mounted=false.
+    if (mounted && _pollAttempt < _maxPollAttempts) {
+      _scheduleNextPoll(_pollInterval);
+    }
+  }
+
+  /// 삭제 버튼 노출 조건 — caller 가 owner 를 알려줬다면 본인과 비교,
+  /// 안 알려줬으면 본인 dot 가정 (today_map / map_animation 등).
+  bool _canDelete() {
+    final me = ref.read(currentDottieUserProvider).valueOrNull;
+    if (me == null) return false;
+    final owner = widget.ownerUserId;
+    if (owner == null) return true;
+    return owner == me.uid;
+  }
+
+  Future<void> _confirmAndDelete() async {
+    if (_deleting) return;
+    HapticFeedback.lightImpact();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('이 기록을 삭제할까요?'),
+        content: const Text(
+            '이 dot 과 함께 작성된 댓글도 함께 삭제돼요. 되돌릴 수 없어요.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _performDelete();
+  }
+
+  Future<void> _performDelete() async {
+    setState(() => _deleting = true);
+    try {
+      final repo = ref.read(dotRepositoryProvider);
+      final success = await repo.deleteDot(widget.dot);
+      if (!mounted) return;
+      if (!success) {
+        // 네트워크 오류 — 로컬 보존, 사용자에게 안내.
+        _showSnack('네트워크 오류 — 잠시 후 다시 시도해주세요');
+        setState(() => _deleting = false);
+        return;
+      }
+      _invalidateAfterDelete();
+      // DotDetailSheet 닫기. showBackButton=true 면 부모가 DotListSheet 인 경우라
+      // 그 stale 한 정적 dot 리스트도 함께 닫아 사용자가 지도로 복귀하게 함
+      // (지도는 invalidate 후 _refreshMemberSources 가 즉시 갱신).
+      final nav = Navigator.of(context);
+      nav.pop();
+      if (widget.showBackButton) nav.pop();
+    } on DotDeleteException catch (e) {
+      if (!mounted) return;
+      if (e.isForbidden) {
+        _showSnack('본인 기록만 삭제할 수 있어요');
+      } else {
+        _showSnack('삭제하지 못했어요 (${e.code ?? e.statusCode ?? '알 수 없음'})');
+      }
+      setState(() => _deleting = false);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnack('삭제 중 오류가 발생했어요');
+      setState(() => _deleting = false);
+    }
+  }
+
+  /// dot 이 노출되던 캐시를 광범위하게 무효화.
+  /// roomId 가 있으면 그 룸 화면들, 없어도 timeline / 오늘 세션은 갱신.
+  void _invalidateAfterDelete() {
+    ref.invalidate(activeRecordingProvider);
+    ref.invalidate(timelineDayLogsProvider);
+    final roomId = widget.roomId;
+    if (roomId != null) {
+      final roomKey = ([roomId]..sort()).join(',');
+      ref.invalidate(
+        mergedCommentListProvider((dotId: widget.dot.id, roomKey: roomKey)),
+      );
+      ref.invalidate(cumulativeRoomDotsProvider(roomId));
+      ref.invalidate(placeGroupsProvider(roomId));
+      // sharedMap 은 (roomId, date) 패밀리 — 정확한 date 키로 무효화.
+      final localDate = widget.dot.timestamp.toLocal();
+      final dateStr =
+          '${localDate.year}-${localDate.month.toString().padLeft(2, '0')}-${localDate.day.toString().padLeft(2, '0')}';
+      ref.invalidate(sharedMapNotifierProvider(roomId, dateStr));
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  /// 효과적 hide 대상 방 집합. caller 가 `hideRoomIds` 안 줬으면 `widget.roomId`
+  /// 폴백 — 룸 컨텍스트 caller (shared_map 등) 호환.
+  Set<String> _effectiveHideRoomIds() {
+    final fromOpt = widget.hideRoomIds;
+    if (fromOpt != null) return fromOpt;
+    final rid = widget.roomId;
+    if (rid != null) return {rid};
+    return const {};
+  }
+
+  /// 룸별 숨김 — 본인 dot 만 가능 + 숨길 대상 방이 1개 이상.
+  bool _canHide() => _effectiveHideRoomIds().isNotEmpty && _canDelete();
+
+  /// "지도에서 보기" 액션 가능 여부 — caller 가 콜백 + 1개 이상 roomId 를
+  /// 넘긴 경우만. 본인 비공개 dot (sharedRoomIds 비어있음) 은 자동 숨김.
+  bool _canOpenInMap() {
+    final ids = widget.openInMapRoomIds;
+    return widget.onOpenInMap != null && ids != null && ids.isNotEmpty;
+  }
+
+  Future<void> _handleOpenInMap() async {
+    final ids = widget.openInMapRoomIds!.toList();
+    HapticFeedback.lightImpact();
+    String? pickedId;
+    if (ids.length == 1) {
+      pickedId = ids.first;
+    } else {
+      pickedId = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: DottieColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => _RoomPicker(
+          title: '어느 방의 지도로 갈까요?',
+          roomIds: ids,
+          roomNames: widget.openInMapRoomNames ?? const {},
+        ),
+      );
+    }
+    if (pickedId == null || !mounted) return;
+    Navigator.of(context).pop();
+    widget.onOpenInMap!(pickedId);
+  }
+
+  Future<void> _confirmAndHide() async {
+    if (_hiding || _deleting) return;
+    HapticFeedback.lightImpact();
+    final ids = _effectiveHideRoomIds().toList();
+    if (ids.isEmpty) return;
+
+    // 여러 방 공유 dot — 어느 방에서 숨길지 먼저 선택.
+    // 1개면 picker 없이 바로 다이얼로그 (룸 컨텍스트 / 단일 방 공유 케이스).
+    String? targetRoomId;
+    if (ids.length == 1) {
+      targetRoomId = ids.first;
+    } else {
+      targetRoomId = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: DottieColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => _RoomPicker(
+          title: '어느 방에서 숨길까요?',
+          roomIds: ids,
+          roomNames: widget.hideRoomNames ?? const {},
+        ),
+      );
+    }
+    if (targetRoomId == null || !mounted) return;
+
+    final roomName =
+        widget.hideRoomNames?[targetRoomId] ?? '이 방';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          '$roomName 에서 숨기기',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: DottieColors.textPrimary,
+          ),
+        ),
+        content: Text.rich(
+          TextSpan(
+            style: const TextStyle(
+              height: 1.6,
+              color: DottieColors.textPrimary,
+            ),
+            children: [
+              TextSpan(text: '이 dot 을 '),
+              TextSpan(
+                text: roomName,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const TextSpan(text: ' 에서만 보이지 않게 할까요?\n\n'),
+              const TextSpan(
+                  text: '다른 방의 공유와 내 기록 보관함에는 그대로 보여요. '),
+              const TextSpan(
+                text: '숨김 해제는 방 설정의 "내가 숨긴 기록" 에서 할 수 있어요.',
+                style: TextStyle(color: DottieColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+                backgroundColor: DottieColors.primary),
+            child: const Text('숨기기'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _performHide(targetRoomId);
+  }
+
+  Future<void> _performHide(String roomId) async {
+    setState(() => _hiding = true);
+    try {
+      await ref
+          .read(dotRepositoryProvider)
+          .hideDotInRoom(widget.dot.id, roomId);
+      if (!mounted) return;
+      // BE 가 다음 호출부터 자동 필터링 — 그 룸 캐시 무효화 후 시트 닫음.
+      _invalidateAfterHideOrDelete(roomId);
+      Navigator.of(context).pop();
+      // 부모가 DotListSheet 였으면 같이 닫음 (stale 리스트 노출 방지).
+      if (widget.showBackButton && mounted) {
+        Navigator.of(context).pop();
+      }
+    } on HideDotException catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString());
+      setState(() => _hiding = false);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnack('숨김 처리에 실패했어요. 잠시 후 다시 시도해 주세요.');
+      setState(() => _hiding = false);
+    }
+  }
+
+  /// hide 후 룸 캐시 무효화 — delete 와 같은 캐시 영역 + hidden 목록.
+  void _invalidateAfterHideOrDelete(String roomId) {
+    final roomKey = ([roomId]..sort()).join(',');
+    ref.invalidate(
+      mergedCommentListProvider((dotId: widget.dot.id, roomKey: roomKey)),
+    );
+    ref.invalidate(cumulativeRoomDotsProvider(roomId));
+    ref.invalidate(placeGroupsProvider(roomId));
+    ref.invalidate(hiddenDotsByMeProvider(roomId));
+    final localDate = widget.dot.timestamp.toLocal();
+    final dateStr =
+        '${localDate.year}-${localDate.month.toString().padLeft(2, '0')}-${localDate.day.toString().padLeft(2, '0')}';
+    ref.invalidate(sharedMapNotifierProvider(roomId, dateStr));
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = widget.dot.photoUrl != null && widget.dot.photoUrl!.isNotEmpty;
-    final hasEmotion = widget.dot.emotion != null && widget.dot.emotion!.isNotEmpty;
-    final hasMemo = widget.dot.memo != null && widget.dot.memo!.isNotEmpty;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    // 멘션 자동완성 대상 필터
-    final mentionCandidates = _mentionQuery == null
-        ? <DotMemberHint>[]
-        : widget.members
-            .where((m) => m.nickname.toLowerCase()
-                .startsWith(_mentionQuery!.toLowerCase()))
-            .toList();
+    final canDelete = _canDelete();
+    final canHide = _canHide();
+    final canOpenInMap = _canOpenInMap();
 
     return ConstrainedBox(
+      // iOS 상단 swipe-down(제어 센터/알림) 영역과 안전한 거리 — 78%.
+      // 부족한 콘텐츠는 시트 내부 스크롤로 처리.
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.78,
       ),
       child: Container(
         decoration: const BoxDecoration(
@@ -215,558 +529,132 @@ class _DotDetailSheetState extends ConsumerState<DotDetailSheet> {
               ),
             ),
 
-            // 뒤로가기 버튼
-            if (widget.showBackButton)
+            // 상단 액션 행 — 좌: 목록으로 (옵션),
+            // 우: 지도에서 보기 (피드) / 숨김 / 삭제 (본인 dot 한정).
+            if (widget.showBackButton || canDelete || canHide || canOpenInMap)
               Padding(
                 padding:
-                    const EdgeInsets.fromLTRB(4, 4, Dimensions.md, 0),
+                    const EdgeInsets.fromLTRB(4, 4, Dimensions.xs, 0),
                 child: Row(
                   children: [
-                    TextButton.icon(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 14,
-                        color: DottieColors.primary,
-                      ),
-                      label: Text(
-                        '목록으로',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    if (widget.showBackButton)
+                      TextButton.icon(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 14,
                           color: DottieColors.primary,
                         ),
+                        label: Text(
+                          '목록으로',
+                          style: GoogleFonts.notoSansKr(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: DottieColors.primary,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                       ),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    const Spacer(),
+                    // 지도에서 보기 — 피드 컨텍스트 (caller 가 콜백 + roomIds 제공).
+                    if (canOpenInMap)
+                      IconButton(
+                        onPressed: _handleOpenInMap,
+                        tooltip: '지도에서 보기',
+                        icon: const Icon(
+                          Icons.map_outlined,
+                          size: 22,
+                          color: DottieColors.textSecondary,
+                        ),
                       ),
-                    ),
+                    // 룸별 숨김 — 룸 컨텍스트 + 본인 dot 만.
+                    if (canHide)
+                      IconButton(
+                        onPressed: (_hiding || _deleting)
+                            ? null
+                            : _confirmAndHide,
+                        tooltip: '이 방에서 숨기기',
+                        icon: _hiding
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: DottieColors.primary,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.visibility_off_outlined,
+                                size: 22,
+                                color: DottieColors.textSecondary,
+                              ),
+                      ),
+                    if (canDelete)
+                      IconButton(
+                        onPressed: (_deleting || _hiding)
+                            ? null
+                            : _confirmAndDelete,
+                        tooltip: '기록 삭제',
+                        icon: _deleting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.redAccent,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 22,
+                                color: Colors.redAccent,
+                              ),
+                      ),
                   ],
                 ),
               ),
 
-            // 스크롤 가능한 본문 + 댓글 목록
+            // 스크롤 가능한 본문 + 댓글 목록 + 입력 (DotCommentBlock 안 입력란이
+            // ListView 자식이므로 키보드가 올라올 때 padding 으로 입력란이
+            // 가려지지 않도록 viewInsets.bottom 을 반영한다.)
             Flexible(
               child: ListView(
                 controller: _scrollController,
                 padding: EdgeInsets.fromLTRB(
                   Dimensions.md,
-                  widget.showBackButton ? Dimensions.xs : Dimensions.md,
-                  Dimensions.md,
-                  _hasComments ? Dimensions.sm : Dimensions.lg,
-                ),
-                shrinkWrap: true,
-                children: [
-                  // 멤버 행
-                  if (widget.memberName != null) ...[
-                    _MemberRow(
-                      name: widget.memberName!,
-                      color: widget.memberColor ?? DottieColors.primary,
-                    ),
-                    const SizedBox(height: Dimensions.sm),
-                    const Divider(color: DottieColors.border, height: 1),
-                    const SizedBox(height: Dimensions.sm),
-                  ],
-
-                  // 시간 + 장소
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time_rounded,
-                          size: 14, color: DottieColors.textHint),
-                      const SizedBox(width: 5),
-                      Text(
-                        DottieDateUtils.toTimeString(widget.dot.timestamp),
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: DottieColors.textSecondary,
-                        ),
-                      ),
-                      if (widget.dot.placeName != null &&
-                          widget.dot.placeName!.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        const Text('·',
-                            style: TextStyle(
-                                color: DottieColors.textHint,
-                                fontSize: 13)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            widget.dot.placeName!,
-                            style: GoogleFonts.notoSansKr(
-                              fontSize: 13,
-                              color: DottieColors.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  // 감정 배지
-                  if (hasEmotion) ...[
-                    const SizedBox(height: Dimensions.sm),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: DottieColors.primaryLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        widget.dot.emotion!,
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: DottieColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // 메모
-                  if (hasMemo) ...[
-                    const SizedBox(height: Dimensions.sm),
-                    Text(
-                      widget.dot.memo!,
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 15,
-                        color: DottieColors.textPrimary,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-
-                  // 사진
-                  if (hasPhoto) ...[
-                    const SizedBox(height: Dimensions.md),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: widget.dot.photoUrl!,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
-                          height: 220,
-                          color: DottieColors.surfaceVariant,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: DottieColors.primary,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, __, ___) => Container(
-                          height: 220,
-                          color: DottieColors.surfaceVariant,
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.broken_image_outlined,
-                                  color: DottieColors.textHint, size: 32),
-                              SizedBox(height: 8),
-                              Text('사진을 불러올 수 없어요',
-                                  style: TextStyle(
-                                      color: DottieColors.textHint,
-                                      fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // 댓글 섹션 (room에서만)
-                  if (_hasComments) ...[
-                    const SizedBox(height: Dimensions.md),
-                    const Divider(color: DottieColors.border, height: 1),
-                    const SizedBox(height: Dimensions.sm),
-                    _CommentSection(
-                      dotId: widget.dot.id,
-                      members: widget.members,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // 댓글 입력 영역 (room에서만)
-            if (_hasComments) ...[
-              const Divider(color: DottieColors.border, height: 1),
-
-              // @멘션 자동완성 칩
-              if (mentionCandidates.isNotEmpty)
-                Container(
-                  color: DottieColors.surface,
-                  padding: const EdgeInsets.fromLTRB(
-                      Dimensions.md, 8, Dimensions.md, 4),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: mentionCandidates.map((m) {
-                        final c = m.color ?? DottieColors.primary;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () => _insertMention(m),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: c.withAlpha(40),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: c.withAlpha(120), width: 1),
-                              ),
-                              child: Text(
-                                '@${m.nickname}',
-                                style: GoogleFonts.notoSansKr(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: c,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-
-              // 입력창
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  Dimensions.md,
-                  8,
+                  (widget.showBackButton || canDelete)
+                      ? Dimensions.xs
+                      : Dimensions.md,
                   Dimensions.md,
                   MediaQuery.of(context).padding.bottom +
                       bottomInset +
-                      8,
+                      Dimensions.lg,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        onChanged: _onCommentChanged,
-                        maxLines: 4,
-                        minLines: 1,
-                        maxLength: 500,
-                        buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-                            null, // 카운터 UI 숨김
-                        textInputAction: TextInputAction.newline,
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 14,
-                          color: DottieColors.textPrimary,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '댓글을 입력해요...',
-                          hintStyle: GoogleFonts.notoSansKr(
-                            fontSize: 14,
-                            color: DottieColors.textHint,
-                          ),
-                          filled: true,
-                          fillColor: DottieColors.surfaceVariant,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _postComment,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: _posting
-                              ? DottieColors.primary.withAlpha(100)
-                              : DottieColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: _posting
-                            ? const Padding(
-                                padding: EdgeInsets.all(10),
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.send_rounded,
-                                color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ],
-                ),
+                shrinkWrap: true,
+                children: [
+                  DotContentBlock(
+                    dot: _currentDot,
+                    memberName: widget.memberName,
+                    memberColor: widget.memberColor,
+                    roomId: widget.roomId,
+                    membersByRoomId: widget.membersByRoomId,
+                    availableRoomIds: widget.availableRoomIds,
+                    roomNameById: widget.roomNameById,
+                  ),
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-// ── 댓글 목록 섹션 ────────────────────────────────────────
-
-class _CommentSection extends ConsumerWidget {
-  const _CommentSection({
-    required this.dotId,
-    required this.members,
-  });
-  final String dotId;
-  final List<DotMemberHint> members;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(commentListProvider(dotId));
-    final currentUid = ref.watch(currentUserProvider)?.uid;
-
-    return state.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              color: DottieColors.primary,
-              strokeWidth: 2,
-            ),
-          ),
-        ),
-      ),
-      error: (_, __) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          '댓글을 불러오지 못했어요',
-          style: GoogleFonts.notoSansKr(
-              fontSize: 13, color: DottieColors.textHint),
-        ),
-      ),
-      data: (comments) {
-        if (comments.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              '첫 댓글을 남겨보세요 💬',
-              style: GoogleFonts.notoSansKr(
-                fontSize: 13,
-                color: DottieColors.textHint,
-              ),
-            ),
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '댓글 ${comments.length}개',
-              style: GoogleFonts.notoSansKr(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: DottieColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: Dimensions.sm),
-            ...comments.map((c) => _CommentItem(
-                  comment: c,
-                  isOwn: c.authorId == currentUid,
-                  members: members,
-                  onDelete: () => ref
-                      .read(commentListProvider(dotId).notifier)
-                      .delete(c.id),
-                )),
-          ],
-        );
-      },
-    );
-  }
-}
-
-// ── 댓글 아이템 ───────────────────────────────────────────
-
-class _CommentItem extends StatelessWidget {
-  const _CommentItem({
-    required this.comment,
-    required this.isOwn,
-    required this.members,
-    required this.onDelete,
-  });
-
-  final DotComment comment;
-  final bool isOwn;
-  final List<DotMemberHint> members;
-  final VoidCallback onDelete;
-
-  /// 작성자의 정체성 색.
-  /// 1순위 — BE 응답의 `author_color` (룸 떠난 사용자도 정확).
-  /// 2순위 — room members 룩업 (혹시 BE 응답이 없을 경우).
-  /// 3순위 — primary 폴백.
-  Color _authorColor() {
-    final beColor = characterColorMap[comment.authorColorKey];
-    if (beColor != null) return beColor;
-    for (final m in members) {
-      if (m.userId == comment.authorId) return m.color ?? DottieColors.primary;
-    }
-    return DottieColors.primary;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final authorColor = _authorColor();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 아바타 — 닉네임 첫 글자, 색깔만 사용자 색
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: authorColor.withAlpha(45),
-              shape: BoxShape.circle,
-              border: Border.all(color: authorColor.withAlpha(120), width: 1),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              comment.authorNickname.isNotEmpty
-                  ? comment.authorNickname[0].toUpperCase()
-                  : '?',
-              style: GoogleFonts.notoSansKr(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: authorColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      comment.authorNickname,
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: authorColor,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      DottieDateUtils.toTimeString(comment.createdAt),
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 11,
-                        color: DottieColors.textHint,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                _buildContent(context),
-              ],
-            ),
-          ),
-          // 본인 댓글 삭제 버튼
-          if (isOwn)
-            GestureDetector(
-              onTap: () => _confirmDelete(context),
-              child: const Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.close_rounded,
-                    size: 16, color: DottieColors.textHint),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    final baseStyle = GoogleFonts.notoSansKr(
-      fontSize: 14,
-      color: DottieColors.textPrimary,
-      height: 1.4,
-    );
-    if (comment.mentions.isEmpty) {
-      return Text(comment.content, style: baseStyle);
-    }
-    final spans = <TextSpan>[];
-    int cursor = 0;
-    final sorted = [...comment.mentions]
-      ..sort((a, b) => a.start.compareTo(b.start));
-    for (final m in sorted) {
-      final safeStart = m.start.clamp(0, comment.content.length);
-      final safeEnd = m.end.clamp(safeStart, comment.content.length);
-      if (safeStart > cursor) {
-        spans.add(TextSpan(
-            text: comment.content.substring(cursor, safeStart)));
-      }
-      // 멘션 대상자의 정체성 색으로 강조
-      final mentionColor =
-          characterColorMap[m.colorKey] ?? DottieColors.primary;
-      spans.add(TextSpan(
-        text: comment.content.substring(safeStart, safeEnd),
-        style: TextStyle(
-          color: mentionColor,
-          fontWeight: FontWeight.w700,
-        ),
-      ));
-      cursor = safeEnd;
-    }
-    if (cursor < comment.content.length) {
-      spans.add(TextSpan(text: comment.content.substring(cursor)));
-    }
-    return RichText(
-      text: TextSpan(style: baseStyle, children: spans),
-    );
-  }
-
-  void _confirmDelete(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('댓글 삭제',
-            style: GoogleFonts.notoSansKr(fontWeight: FontWeight.w700)),
-        content: Text('이 댓글을 삭제할까요?',
-            style: GoogleFonts.notoSansKr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text('취소',
-                style: GoogleFonts.notoSansKr(
-                    color: DottieColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              onDelete();
-            },
-            child: Text('삭제',
-                style: GoogleFonts.notoSansKr(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── 여러 dot 목록 시트 ────────────────────────────────────
 
 class DotListSheet extends StatelessWidget {
@@ -776,14 +664,21 @@ class DotListSheet extends StatelessWidget {
     this.memberName,
     this.memberColor,
     this.roomId,
-    this.members = const [],
+    this.membersByRoomId = const {},
+    this.ownerByDotId = const {},
   });
 
   final List<Dot> dots;
   final String? memberName;
   final Color? memberColor;
   final String? roomId;
-  final List<DotMemberHint> members;
+
+  /// roomId → 멘션 후보 멤버 목록.
+  final Map<String, List<DotMemberHint>> membersByRoomId;
+
+  /// dot.id → owner user id 매핑. 자식 DotDetailSheet 의 삭제 버튼 노출 결정용.
+  /// 비어 있으면 owner 모름 — DotDetailSheet 가 본인 dot 가정 (today_map / map_animation 경로).
+  final Map<String, String> ownerByDotId;
 
   static Future<void> show(
     BuildContext context,
@@ -791,7 +686,8 @@ class DotListSheet extends StatelessWidget {
     String? memberName,
     Color? memberColor,
     String? roomId,
-    List<DotMemberHint> members = const [],
+    Map<String, List<DotMemberHint>> membersByRoomId = const {},
+    Map<String, String> ownerByDotId = const {},
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -802,7 +698,8 @@ class DotListSheet extends StatelessWidget {
         memberName: memberName,
         memberColor: memberColor,
         roomId: roomId,
-        members: members,
+        membersByRoomId: membersByRoomId,
+        ownerByDotId: ownerByDotId,
       ),
     );
   }
@@ -901,8 +798,7 @@ class DotListSheet extends StatelessWidget {
                     dot.emotion != null && dot.emotion!.isNotEmpty;
                 final hasMemo =
                     dot.memo != null && dot.memo!.isNotEmpty;
-                final hasPhoto =
-                    dot.photoUrl != null && dot.photoUrl!.isNotEmpty;
+                final hasPhoto = dot.hasPhotoData;
                 return InkWell(
                   onTap: () {
                     DotDetailSheet.show(
@@ -912,7 +808,8 @@ class DotListSheet extends StatelessWidget {
                       memberColor: memberColor,
                       showBackButton: true,
                       roomId: roomId,
-                      members: members,
+                      membersByRoomId: membersByRoomId,
+                      ownerUserId: ownerByDotId[dot.id],
                     );
                   },
                   child: Padding(
@@ -982,8 +879,12 @@ class DotListSheet extends StatelessWidget {
                         if (roomId != null)
                           Consumer(
                             builder: (context, ref, _) {
+                              final roomKey = ([roomId!]..sort()).join(',');
                               final count = ref
-                                      .watch(commentListProvider(dot.id))
+                                      .watch(mergedCommentListProvider((
+                                        dotId: dot.id,
+                                        roomKey: roomKey,
+                                      )))
                                       .valueOrNull
                                       ?.length ??
                                   0;
@@ -1023,46 +924,85 @@ class DotListSheet extends StatelessWidget {
   }
 }
 
-// ── 멤버 행 ───────────────────────────────────────────────
+// ── 방 선택 시트 — 여러 방 공유 dot 에서 어느 방에 대한 액션인지 결정 ──────
+//
+// "지도에서 보기" / "이 방에서 숨기기" 등 여러 방 공유 케이스에서 공통 사용.
+// 1개 방이면 caller 가 picker 없이 바로 처리. 여러 개일 때만 이 시트.
+//
+// 동작: tap 시 선택된 roomId 를 결과로 pop. caller 가 후속 처리.
 
-class _MemberRow extends StatelessWidget {
-  const _MemberRow({required this.name, required this.color});
-  final String name;
-  final Color color;
+class _RoomPicker extends StatelessWidget {
+  const _RoomPicker({
+    required this.title,
+    required this.roomIds,
+    required this.roomNames,
+  });
+
+  final String title;
+  final List<String> roomIds;
+  final Map<String, String> roomNames;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: color.withAlpha(30),
-            shape: BoxShape.circle,
-            border:
-                Border.all(color: color.withAlpha(100), width: 1.5),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : '?',
-            style: GoogleFonts.notoSansKr(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: color,
+    return SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            decoration: BoxDecoration(
+              color: DottieColors.border,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          name,
-          style: GoogleFonts.notoSansKr(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: DottieColors.textPrimary,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                Dimensions.md, Dimensions.xs, Dimensions.md, Dimensions.sm),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: DottieColors.textPrimary,
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+          for (final id in roomIds)
+            ListTile(
+              leading: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: DottieColors.accentFor(id),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              title: Text(
+                roomNames[id] ?? '방',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: DottieColors.textPrimary,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: DottieColors.textHint,
+                size: 20,
+              ),
+              onTap: () => Navigator.of(context).pop(id),
+            ),
+          const SizedBox(height: Dimensions.sm),
+        ],
+      ),
     );
   }
 }

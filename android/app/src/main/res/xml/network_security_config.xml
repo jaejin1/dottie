@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  네트워크 보안 설정.
+  - cleartextTrafficPermitted=false: 평문 HTTP 전면 차단(HTTPS 강제).
+  - pin-set: app.dottie.today 에 대해 인증서 SPKI 핀 고정. 사용자가 설치한
+    악성/기업 CA 로 MITM 을 시도해도(그 CA 는 아래 핀과 불일치) 연결이 거부돼
+    Firebase ID 토큰·dot 좌표가 탈취되지 않는다.
+
+  핀 대상: 이 도메인은 Let's Encrypt 를 쓰며 leaf 인증서는 ~90일마다 교체된다.
+  따라서 leaf 가 아니라 장수명 상위 인증서(중간 CA + ISRG 루트)의 SPKI 를 핀한다.
+  network_security_config 는 검증된 체인의 "아무 인증서나" 핀과 일치하면 통과하므로
+  leaf/중간 교체에도 루트 핀으로 계속 검증된다.
+
+  ⚠ 서버 CA 가 완전히 바뀌면 핀을 갱신하고 앱을 재배포해야 한다. expiration 이
+  지나면 핀 검증이 자동 해제(fail-open)되어 CA 교체 시 앱이 죽는 것을 막는다 —
+  만료 전 반드시 핀 재검토. (핀 갱신: `openssl s_client -connect app.dottie.today:443
+  -showcerts` 로 체인 추출 후 각 인증서 SPKI SHA-256 재계산.)
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">dottie.today</domain>
+        <pin-set expiration="2027-01-01">
+            <!-- Let's Encrypt 중간 CA (YE2) — 근시일 안전망 -->
+            <pin digest="SHA-256">s/tdAOmUzd8syaTuqfgGvFcn6DzA5Cmb+Vby1ST+U3Y=</pin>
+            <!-- ISRG 하위 루트 (Root YE) -->
+            <pin digest="SHA-256">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
+            <!-- ISRG Root X2 — 장수명 루트(주 핀) -->
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+        </pin-set>
+    </domain-config>
+</network-security-config>

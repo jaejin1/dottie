@@ -18,6 +18,7 @@ _$DottieUserImpl _$$DottieUserImplFromJson(Map<String, dynamic> json) =>
             ),
       provider: json['provider'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      consentRequired: json['consent_required'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$DottieUserImplToJson(_$DottieUserImpl instance) =>
@@ -28,20 +29,13 @@ Map<String, dynamic> _$$DottieUserImplToJson(_$DottieUserImpl instance) =>
       'character_config': instance.character,
       'provider': instance.provider,
       'created_at': instance.createdAt.toIso8601String(),
+      'consent_required': instance.consentRequired,
     };
 
 _$CharacterConfigImpl _$$CharacterConfigImplFromJson(
   Map<String, dynamic> json,
-) => _$CharacterConfigImpl(
-  colorKey: json['color_key'] as String? ?? 'blue',
-  accessoryKey: json['accessory'] as String? ?? 'none',
-  expressionKey: json['expression'] as String? ?? 'default',
-);
+) => _$CharacterConfigImpl(colorHex: json['color_hex'] as String? ?? '#7EB8F7');
 
 Map<String, dynamic> _$$CharacterConfigImplToJson(
   _$CharacterConfigImpl instance,
-) => <String, dynamic>{
-  'color_key': instance.colorKey,
-  'accessory': instance.accessoryKey,
-  'expression': instance.expressionKey,
-};
+) => <String, dynamic>{'color_hex': instance.colorHex};

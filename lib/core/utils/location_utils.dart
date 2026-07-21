@@ -30,4 +30,13 @@ class LocationUtils {
     double meters,
   ) =>
       distanceInKm(lat1, lng1, lat2, lng2) * 1000 <= meters;
+
+  /// 거리 (m). distanceInKm * 1000 동등.
+  static double distanceM(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) =>
+      distanceInKm(lat1, lng1, lat2, lng2) * 1000;
 }

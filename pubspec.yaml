@@ -1,7 +1,7 @@
 name: dottie
 description: "Dottie - 같은 하루, 다른 발자국. 하루를 점으로 기록하는 지도 브이로그 앱"
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.0+8
 
 environment:
   sdk: ^3.10.8
@@ -16,8 +16,9 @@ dependencies:
   mapbox_maps_flutter: ^2.5.0
 
   # Firebase
-  firebase_core: ^3.13.1
-  firebase_auth: ^5.5.2
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  firebase_messaging: ^16.4.1
 
   # 상태 관리
   flutter_riverpod: ^2.6.1
@@ -37,7 +38,10 @@ dependencies:
 
   # 로컬 저장소
   drift: ^2.22.1
-  sqlite3_flutter_libs: ^0.5.30
+  # SQLCipher 로 로컬 DB 암호화. sqlite3_flutter_libs 와 동시 사용 시 iOS/macOS
+  # 에서 정적 링크 충돌이 나므로 sqlcipher 로 단일화(평문 DB 도 열 수 있음).
+  sqlcipher_flutter_libs: ^0.6.4
+  sqlite3: ^2.4.0
   path_provider: ^2.1.5
   path: ^1.9.1
   shared_preferences: ^2.3.5
@@ -54,6 +58,7 @@ dependencies:
   # 이미지/미디어
   image_picker: ^1.1.2
   cached_network_image: ^3.4.1
+  flutter_image_compress: ^2.3.0
 
   # 모델 코드 생성 annotation
   freezed_annotation: ^2.4.4
@@ -74,12 +79,22 @@ dependencies:
   salomon_bottom_bar: ^3.3.2
   fl_chart: ^0.70.2
   glassmorphism: ^3.0.0
+  flutter_colorpicker: ^1.1.0
+
+  # 인앱 온보딩 투어
+  tutorial_coach_mark: ^1.2.1
 
   # UI 유틸리티
   flutter_screenutil: ^5.9.3
   intl: ^0.20.2
 
+  # 공유 / 딥링크 (할일 공유 토큰)
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+  app_links: ^6.3.2
+
   cupertino_icons: ^1.0.8
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
@@ -105,6 +120,10 @@ flutter:
     - assets/images/test/
     - assets/animations/
     - assets/character/
+    - assets/character/skin/
+    - assets/character/hair_front/
+    - assets/character/shirts/
+    - assets/character/pants/
 
 flutter_native_splash:
   color: "#FAF8F4"

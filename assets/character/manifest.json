@@ -1,70 +1,53 @@
 {
-  "version": 1,
-  "frame_size": { "w": 32, "h": 32 },
-  "frame_count": 5,
-  "_comment": "BE 화이트리스트와 1:1 일치. 변경 시 BE에도 반영 필수.",
+  "version": 2,
+  "frame_size": { "w": 64, "h": 64 },
+  "frame_count": 9,
+  "_comment": "LPC universal sprite sheet 기반. 832x256 = 64x64 frame x 13 col x 4 row이지만 실제 콘텐츠는 col 0~8 (9프레임)만 채워져 있음. col 9~12는 빈 frame이라 frame_count=9로 제한하여 walk cycle 깜빡임 방지. 코드는 row 2 (front-facing/down)만 사용. BE 화이트리스트와 1:1 일치 필요 — 새 ID 추가 시 BE도 동시 갱신.",
   "parts": {
     "skin": [
-      { "id": "skin_01", "name": "기본",   "asset": "assets/character/skin/skin_01.png" },
-      { "id": "skin_02", "name": "라이트", "asset": "assets/character/skin/skin_02.png" },
-      { "id": "skin_03", "name": "탠",     "asset": "assets/character/skin/skin_03.png" },
-      { "id": "skin_04", "name": "다크",   "asset": "assets/character/skin/skin_04.png" }
+      {
+        "id": "skin_light", "name": "라이트",
+        "asset": "assets/character/skin/010 body_color__light_.png",
+        "head_overlay": "assets/character/skin/100 human_child__light_.png"
+      },
+      {
+        "id": "skin_brown", "name": "브라운",
+        "asset": "assets/character/skin/010 body_color__brown_.png",
+        "head_overlay": "assets/character/skin/100 human_child__brown_.png"
+      },
+      {
+        "id": "skin_fur_black", "name": "퍼블랙",
+        "asset": "assets/character/skin/010 body_color__fur_black_.png",
+        "head_overlay": "assets/character/skin/100 human_child__fur_black_.png"
+      },
+      {
+        "id": "skin_zombie", "name": "좀비",
+        "asset": "assets/character/skin/010 body_color__zombie_green_.png",
+        "head_overlay": "assets/character/skin/100 human_child__zombie_green_.png"
+      }
     ],
     "hair_back": [],
     "hair_front": [
-      { "id": "hair_basic",     "name": "기본",       "asset": "assets/character/hair_front/hair_basic.png", "tintable": true },
-      { "id": "hair_short",     "name": "숏컷",       "asset": "assets/character/hair_front/hair_short.png", "tintable": true },
-      { "id": "hair_long",      "name": "긴머리",     "asset": "assets/character/hair_front/hair_long.png", "tintable": true },
-      { "id": "hair_curly",     "name": "곱슬",       "asset": "assets/character/hair_front/hair_curly.png", "tintable": true },
-      { "id": "hair_bald",      "name": "민머리",     "asset": "assets/character/hair_front/hair_bald.png", "tintable": false },
-      { "id": "hair_ponytail",  "name": "포니테일",   "asset": "assets/character/hair_front/hair_ponytail.png", "tintable": true }
+      { "id": "hair_child_wavy",   "name": "웨이브", "asset": "assets/character/hair_front/120 child_wavy__orange_.png" },
+      { "id": "hair_jewfro",       "name": "주프로", "asset": "assets/character/hair_front/120 jewfro__orange_.png" },
+      { "id": "hair_long_topknot", "name": "탑노트", "asset": "assets/character/hair_front/120 long_topknot__orange_.png" },
+      { "id": "hair_messy",        "name": "메시",   "asset": "assets/character/hair_front/120 messy__orange_.png" }
     ],
-    "face": [
-      {
-        "id": "face_round",
-        "name": "둥근형",
-        "asset": "assets/character/face/face_round_default.png",
-        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
-      },
-      {
-        "id": "face_oval",
-        "name": "계란형",
-        "asset": "assets/character/face/face_oval_default.png",
-        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
-      },
-      {
-        "id": "face_square",
-        "name": "각진형",
-        "asset": "assets/character/face/face_square_default.png",
-        "expressions": ["default", "smile", "wink", "sad", "angry", "laugh"]
-      }
-    ],
+    "face": [],
     "top": [
-      { "id": "top_tee",     "name": "티셔츠",   "asset": "assets/character/top/top_tee.png", "tintable": true },
-      { "id": "top_hoodie",  "name": "후드",     "asset": "assets/character/top/top_hoodie.png", "tintable": true },
-      { "id": "top_jacket",  "name": "재킷",     "asset": "assets/character/top/top_jacket.png", "tintable": true },
-      { "id": "top_shirt",   "name": "셔츠",     "asset": "assets/character/top/top_shirt.png", "tintable": true },
-      { "id": "top_sweater", "name": "스웨터",   "asset": "assets/character/top/top_sweater.png", "tintable": true }
+      { "id": "top_shirt_black", "name": "셔츠 (검정)", "asset": "assets/character/shirts/035 child_shirts__black_.png" },
+      { "id": "top_shirt_blue",  "name": "셔츠 (파랑)", "asset": "assets/character/shirts/035 child_shirts__blue_.png" },
+      { "id": "top_shirt_pink",  "name": "셔츠 (핑크)", "asset": "assets/character/shirts/035 child_shirts__pink_.png" },
+      { "id": "top_shirt_red",   "name": "셔츠 (빨강)", "asset": "assets/character/shirts/035 child_shirts__red_.png" },
+      { "id": "top_shirt_white", "name": "셔츠 (흰색)", "asset": "assets/character/shirts/035 child_shirts__white_.png" }
     ],
     "bottom": [
-      { "id": "bottom_jeans",   "name": "청바지", "asset": "assets/character/bottom/bottom_jeans.png", "tintable": true },
-      { "id": "bottom_shorts",  "name": "반바지", "asset": "assets/character/bottom/bottom_shorts.png", "tintable": true },
-      { "id": "bottom_skirt",   "name": "치마",   "asset": "assets/character/bottom/bottom_skirt.png", "tintable": true },
-      { "id": "bottom_slacks",  "name": "슬랙스", "asset": "assets/character/bottom/bottom_slacks.png", "tintable": true }
+      { "id": "bottom_pants_black", "name": "바지 (검정)", "asset": "assets/character/pants/020 child_pants__black_.png" },
+      { "id": "bottom_pants_blue",  "name": "바지 (파랑)", "asset": "assets/character/pants/020 child_pants__blue_.png" },
+      { "id": "bottom_pants_red",   "name": "바지 (빨강)", "asset": "assets/character/pants/020 child_pants__red_.png" },
+      { "id": "bottom_pants_white", "name": "바지 (흰색)", "asset": "assets/character/pants/020 child_pants__white_.png" }
     ],
-    "shoes": [
-      { "id": "shoes_sneaker", "name": "스니커즈", "asset": "assets/character/shoes/shoes_sneaker.png" },
-      { "id": "shoes_boots",   "name": "부츠",     "asset": "assets/character/shoes/shoes_boots.png" },
-      { "id": "shoes_sandal",  "name": "샌들",     "asset": "assets/character/shoes/shoes_sandal.png" },
-      { "id": "shoes_loafer",  "name": "로퍼",     "asset": "assets/character/shoes/shoes_loafer.png" }
-    ],
-    "accessory": [
-      { "id": "none",     "name": "없음",   "asset": "assets/character/accessory/none.png" },
-      { "id": "glasses",  "name": "안경",   "asset": "assets/character/accessory/glasses.png" },
-      { "id": "hat",      "name": "모자",   "asset": "assets/character/accessory/hat.png" },
-      { "id": "mask",     "name": "마스크", "asset": "assets/character/accessory/mask.png" },
-      { "id": "earring",  "name": "귀걸이", "asset": "assets/character/accessory/earring.png" },
-      { "id": "scarf",    "name": "스카프", "asset": "assets/character/accessory/scarf.png" }
-    ]
+    "shoes": [],
+    "accessory": []
   }
 }

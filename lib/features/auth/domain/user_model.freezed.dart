@@ -32,6 +32,11 @@ mixin _$DottieUser {
   @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
 
+  /// 필수 약관(이용약관/개인정보/위치기반/만14세) 동의가 필요한 상태.
+  /// BE 미배포로 필드가 없으면 false → 동의 게이트 자동 비활성.
+  @JsonKey(name: 'consent_required')
+  bool get consentRequired => throw _privateConstructorUsedError;
+
   /// Serializes this DottieUser to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -56,6 +61,7 @@ abstract class $DottieUserCopyWith<$Res> {
     @JsonKey(name: 'character_config') CharacterConfig character,
     String? provider,
     @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'consent_required') bool consentRequired,
   });
 
   $CharacterConfigCopyWith<$Res> get character;
@@ -82,6 +88,7 @@ class _$DottieUserCopyWithImpl<$Res, $Val extends DottieUser>
     Object? character = null,
     Object? provider = freezed,
     Object? createdAt = null,
+    Object? consentRequired = null,
   }) {
     return _then(
       _value.copyWith(
@@ -109,6 +116,10 @@ class _$DottieUserCopyWithImpl<$Res, $Val extends DottieUser>
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            consentRequired: null == consentRequired
+                ? _value.consentRequired
+                : consentRequired // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -141,6 +152,7 @@ abstract class _$$DottieUserImplCopyWith<$Res>
     @JsonKey(name: 'character_config') CharacterConfig character,
     String? provider,
     @JsonKey(name: 'created_at') DateTime createdAt,
+    @JsonKey(name: 'consent_required') bool consentRequired,
   });
 
   @override
@@ -167,6 +179,7 @@ class __$$DottieUserImplCopyWithImpl<$Res>
     Object? character = null,
     Object? provider = freezed,
     Object? createdAt = null,
+    Object? consentRequired = null,
   }) {
     return _then(
       _$DottieUserImpl(
@@ -194,6 +207,10 @@ class __$$DottieUserImplCopyWithImpl<$Res>
             ? _value.createdAt
             : createdAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        consentRequired: null == consentRequired
+            ? _value.consentRequired
+            : consentRequired // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -209,6 +226,7 @@ class _$DottieUserImpl implements _DottieUser {
     @JsonKey(name: 'character_config') this.character = const CharacterConfig(),
     this.provider,
     @JsonKey(name: 'created_at') required this.createdAt,
+    @JsonKey(name: 'consent_required') this.consentRequired = false,
   });
 
   factory _$DottieUserImpl.fromJson(Map<String, dynamic> json) =>
@@ -231,9 +249,15 @@ class _$DottieUserImpl implements _DottieUser {
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
+  /// 필수 약관(이용약관/개인정보/위치기반/만14세) 동의가 필요한 상태.
+  /// BE 미배포로 필드가 없으면 false → 동의 게이트 자동 비활성.
+  @override
+  @JsonKey(name: 'consent_required')
+  final bool consentRequired;
+
   @override
   String toString() {
-    return 'DottieUser(uid: $uid, nickname: $nickname, profileImage: $profileImage, character: $character, provider: $provider, createdAt: $createdAt)';
+    return 'DottieUser(uid: $uid, nickname: $nickname, profileImage: $profileImage, character: $character, provider: $provider, createdAt: $createdAt, consentRequired: $consentRequired)';
   }
 
   @override
@@ -251,7 +275,9 @@ class _$DottieUserImpl implements _DottieUser {
             (identical(other.provider, provider) ||
                 other.provider == provider) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.consentRequired, consentRequired) ||
+                other.consentRequired == consentRequired));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -264,6 +290,7 @@ class _$DottieUserImpl implements _DottieUser {
     character,
     provider,
     createdAt,
+    consentRequired,
   );
 
   /// Create a copy of DottieUser
@@ -288,6 +315,7 @@ abstract class _DottieUser implements DottieUser {
     @JsonKey(name: 'character_config') final CharacterConfig character,
     final String? provider,
     @JsonKey(name: 'created_at') required final DateTime createdAt,
+    @JsonKey(name: 'consent_required') final bool consentRequired,
   }) = _$DottieUserImpl;
 
   factory _DottieUser.fromJson(Map<String, dynamic> json) =
@@ -310,6 +338,12 @@ abstract class _DottieUser implements DottieUser {
   @JsonKey(name: 'created_at')
   DateTime get createdAt;
 
+  /// 필수 약관(이용약관/개인정보/위치기반/만14세) 동의가 필요한 상태.
+  /// BE 미배포로 필드가 없으면 false → 동의 게이트 자동 비활성.
+  @override
+  @JsonKey(name: 'consent_required')
+  bool get consentRequired;
+
   /// Create a copy of DottieUser
   /// with the given fields replaced by the non-null parameter values.
   @override
@@ -324,12 +358,8 @@ CharacterConfig _$CharacterConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$CharacterConfig {
-  @JsonKey(name: 'color_key')
-  String get colorKey => throw _privateConstructorUsedError;
-  @JsonKey(name: 'accessory')
-  String get accessoryKey => throw _privateConstructorUsedError;
-  @JsonKey(name: 'expression')
-  String get expressionKey => throw _privateConstructorUsedError;
+  @JsonKey(name: 'color_hex')
+  String get colorHex => throw _privateConstructorUsedError;
 
   /// Serializes this CharacterConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -348,11 +378,7 @@ abstract class $CharacterConfigCopyWith<$Res> {
     $Res Function(CharacterConfig) then,
   ) = _$CharacterConfigCopyWithImpl<$Res, CharacterConfig>;
   @useResult
-  $Res call({
-    @JsonKey(name: 'color_key') String colorKey,
-    @JsonKey(name: 'accessory') String accessoryKey,
-    @JsonKey(name: 'expression') String expressionKey,
-  });
+  $Res call({@JsonKey(name: 'color_hex') String colorHex});
 }
 
 /// @nodoc
@@ -369,24 +395,12 @@ class _$CharacterConfigCopyWithImpl<$Res, $Val extends CharacterConfig>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({
-    Object? colorKey = null,
-    Object? accessoryKey = null,
-    Object? expressionKey = null,
-  }) {
+  $Res call({Object? colorHex = null}) {
     return _then(
       _value.copyWith(
-            colorKey: null == colorKey
-                ? _value.colorKey
-                : colorKey // ignore: cast_nullable_to_non_nullable
-                      as String,
-            accessoryKey: null == accessoryKey
-                ? _value.accessoryKey
-                : accessoryKey // ignore: cast_nullable_to_non_nullable
-                      as String,
-            expressionKey: null == expressionKey
-                ? _value.expressionKey
-                : expressionKey // ignore: cast_nullable_to_non_nullable
+            colorHex: null == colorHex
+                ? _value.colorHex
+                : colorHex // ignore: cast_nullable_to_non_nullable
                       as String,
           )
           as $Val,
@@ -403,11 +417,7 @@ abstract class _$$CharacterConfigImplCopyWith<$Res>
   ) = __$$CharacterConfigImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    @JsonKey(name: 'color_key') String colorKey,
-    @JsonKey(name: 'accessory') String accessoryKey,
-    @JsonKey(name: 'expression') String expressionKey,
-  });
+  $Res call({@JsonKey(name: 'color_hex') String colorHex});
 }
 
 /// @nodoc
@@ -423,24 +433,12 @@ class __$$CharacterConfigImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({
-    Object? colorKey = null,
-    Object? accessoryKey = null,
-    Object? expressionKey = null,
-  }) {
+  $Res call({Object? colorHex = null}) {
     return _then(
       _$CharacterConfigImpl(
-        colorKey: null == colorKey
-            ? _value.colorKey
-            : colorKey // ignore: cast_nullable_to_non_nullable
-                  as String,
-        accessoryKey: null == accessoryKey
-            ? _value.accessoryKey
-            : accessoryKey // ignore: cast_nullable_to_non_nullable
-                  as String,
-        expressionKey: null == expressionKey
-            ? _value.expressionKey
-            : expressionKey // ignore: cast_nullable_to_non_nullable
+        colorHex: null == colorHex
+            ? _value.colorHex
+            : colorHex // ignore: cast_nullable_to_non_nullable
                   as String,
       ),
     );
@@ -451,27 +449,19 @@ class __$$CharacterConfigImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$CharacterConfigImpl implements _CharacterConfig {
   const _$CharacterConfigImpl({
-    @JsonKey(name: 'color_key') this.colorKey = 'blue',
-    @JsonKey(name: 'accessory') this.accessoryKey = 'none',
-    @JsonKey(name: 'expression') this.expressionKey = 'default',
+    @JsonKey(name: 'color_hex') this.colorHex = '#7EB8F7',
   });
 
   factory _$CharacterConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$CharacterConfigImplFromJson(json);
 
   @override
-  @JsonKey(name: 'color_key')
-  final String colorKey;
-  @override
-  @JsonKey(name: 'accessory')
-  final String accessoryKey;
-  @override
-  @JsonKey(name: 'expression')
-  final String expressionKey;
+  @JsonKey(name: 'color_hex')
+  final String colorHex;
 
   @override
   String toString() {
-    return 'CharacterConfig(colorKey: $colorKey, accessoryKey: $accessoryKey, expressionKey: $expressionKey)';
+    return 'CharacterConfig(colorHex: $colorHex)';
   }
 
   @override
@@ -479,18 +469,13 @@ class _$CharacterConfigImpl implements _CharacterConfig {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CharacterConfigImpl &&
-            (identical(other.colorKey, colorKey) ||
-                other.colorKey == colorKey) &&
-            (identical(other.accessoryKey, accessoryKey) ||
-                other.accessoryKey == accessoryKey) &&
-            (identical(other.expressionKey, expressionKey) ||
-                other.expressionKey == expressionKey));
+            (identical(other.colorHex, colorHex) ||
+                other.colorHex == colorHex));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, colorKey, accessoryKey, expressionKey);
+  int get hashCode => Object.hash(runtimeType, colorHex);
 
   /// Create a copy of CharacterConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -511,23 +496,15 @@ class _$CharacterConfigImpl implements _CharacterConfig {
 
 abstract class _CharacterConfig implements CharacterConfig {
   const factory _CharacterConfig({
-    @JsonKey(name: 'color_key') final String colorKey,
-    @JsonKey(name: 'accessory') final String accessoryKey,
-    @JsonKey(name: 'expression') final String expressionKey,
+    @JsonKey(name: 'color_hex') final String colorHex,
   }) = _$CharacterConfigImpl;
 
   factory _CharacterConfig.fromJson(Map<String, dynamic> json) =
       _$CharacterConfigImpl.fromJson;
 
   @override
-  @JsonKey(name: 'color_key')
-  String get colorKey;
-  @override
-  @JsonKey(name: 'accessory')
-  String get accessoryKey;
-  @override
-  @JsonKey(name: 'expression')
-  String get expressionKey;
+  @JsonKey(name: 'color_hex')
+  String get colorHex;
 
   /// Create a copy of CharacterConfig
   /// with the given fields replaced by the non-null parameter values.

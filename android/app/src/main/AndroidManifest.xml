@@ -21,7 +21,11 @@
     <application
         android:label="dottie"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- 카카오 앱 키 -->
         <meta-data
@@ -44,6 +48,42 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Android App Links — app.dottie.today 의 /share/todo/* 링크를
+                 인앱 브라우저 우회하고 앱으로 다이렉트. autoVerify=true 는
+                 OS 가 assetlinks.json 으로 도메인 소유 자동 검증. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="app.dottie.today"
+                    android:pathPrefix="/share/todo/" />
+            </intent-filter>
+            <!-- 커스텀 스킴 fallback (앱이 dottie://share/todo/<token> 처리 가능) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dottie" android:host="share" />
+            </intent-filter>
+            <!-- Android App Links — 방 초대 링크 -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="app.dottie.today"
+                    android:pathPrefix="/invite/room/" />
+            </intent-filter>
+            <!-- 커스텀 스킴 fallback (dottie://invite/room/<code>) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dottie" android:host="invite" />
             </intent-filter>
         </activity>
 

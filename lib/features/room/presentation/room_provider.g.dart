@@ -162,7 +162,7 @@ class _RoomDetailProviderElement extends AutoDisposeFutureProviderElement<Room?>
   String get roomId => (origin as RoomDetailProvider).roomId;
 }
 
-String _$roomNotifierHash() => r'b8a5fdd1144d7e1d92196b2008c70f80781fa5e4';
+String _$roomNotifierHash() => r'8cf7981d89eacad6a04e28722e53f3a3ddc4af97';
 
 /// See also [RoomNotifier].
 @ProviderFor(RoomNotifier)

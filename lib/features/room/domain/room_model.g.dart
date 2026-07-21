@@ -22,6 +22,7 @@ _$RoomImpl _$$RoomImplFromJson(Map<String, dynamic> json) => _$RoomImpl(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  autoShare: json['auto_share'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$RoomImplToJson(_$RoomImpl instance) =>
@@ -33,6 +34,7 @@ Map<String, dynamic> _$$RoomImplToJson(_$RoomImpl instance) =>
       'created_at': instance.createdAt.toIso8601String(),
       'invite_code': instance.inviteCode,
       'shared_dates': instance.sharedDates,
+      'auto_share': instance.autoShare,
     };
 
 _$RoomMemberImpl _$$RoomMemberImplFromJson(Map<String, dynamic> json) =>

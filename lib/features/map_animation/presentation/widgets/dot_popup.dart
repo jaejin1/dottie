@@ -72,12 +72,13 @@ class _DotPopupState extends State<DotPopup>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 사진 썸네일
-                if (widget.dot.photoUrl != null) ...[
+                // 사진 썸네일 — 120px 작은 popup 이라 thumb 으로 충분.
+                // variant 미생성 transient 면 안 그림 (popup 은 placeholder 노이즈 회피).
+                if (widget.dot.displayThumbUrl != null) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(Dimensions.radiusSm),
                     child: Image.network(
-                      widget.dot.photoUrl!,
+                      widget.dot.displayThumbUrl!,
                       width: double.infinity,
                       height: 120,
                       fit: BoxFit.cover,

@@ -76,6 +76,7 @@ class PartItem {
     required this.id,
     required this.name,
     required this.assetPath,
+    this.headOverlay,
     this.tintable = false,
     this.expressions = const [],
     this.thumbnailPath,
@@ -90,6 +91,12 @@ class PartItem {
   /// 앱 번들 내 에셋 경로 (예: 'assets/character/hair/hair_03.png').
   /// **manifest.json에서만 도출**, 외부 입력으로 받지 않는다.
   final String assetPath;
+
+  /// (skin 전용) face slot 위치(z=100)에 자동 합성할 머리/얼굴 에셋 경로.
+  /// LPC 시트는 body(010 z-order)와 head(100 z-order)가 별도 PNG로 분리돼 있어
+  /// skin 항목 하나에 두 PNG를 묶어 표현한다.
+  /// face slot이 명시되지 않은 경우 renderer가 이 값을 face 위치에 그린다.
+  final String? headOverlay;
 
   /// 색상 입힘 가능 여부 (흰/회색 텍스처에 ColorFilter.modulate 적용)
   final bool tintable;

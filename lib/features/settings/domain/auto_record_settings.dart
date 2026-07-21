@@ -1,31 +1,30 @@
+import 'dart:io';
+
 class AutoRecordInterval {
   const AutoRecordInterval._();
 
   static const int manual = 0;
-  static const int min1 = 1;
-  static const int min5 = 5;
-  static const int min10 = 10;
   static const int min30 = 30;
   static const int hour1 = 60;
 
-  static const List<int> all = [manual, min1, min5, min10, min30, hour1];
+  static const List<int> all = [manual, min30, hour1];
 
   static String label(int minutes) => switch (minutes) {
         0 => '수동',
-        1 => '1분',
-        5 => '5분',
-        10 => '10분',
         30 => '30분',
         60 => '1시간',
         _ => '$minutes분',
       };
 
-  /// 1·5·10분 — Foreground Service(연속 위치 스트림) 필요.
-  /// WorkManager periodic은 OS 강제 최소 15분 때문에 사용 불가.
+  /// 플랫폼별 백그라운드 기록 메커니즘 선택.
+  ///
+  /// - Android: WorkManager periodic (>=15분 지원, 재부팅 후에도 OS 가 유지)
+  /// - iOS: WorkManager 는 BGAppRefreshTask 라서 실행 시점을 OS 가 임의로
+  ///   결정한다 (30분 힌트를 줘도 몇 시간씩 밀리거나 아예 실행 안 됨).
+  ///   주기적 기록을 보장하려면 background location 스트림
+  ///   (ContinuousLocationService + Always 권한) 을 써야 한다.
   static bool requiresForegroundService(int minutes) =>
-      minutes > 0 && minutes < 15;
+      Platform.isIOS && minutes > 0;
 
-  /// 짧은 간격은 위치 스트림이 항시 돌아 배터리 소모가 큼.
-  static bool hasBatteryWarning(int minutes) =>
-      minutes > 0 && minutes <= 10;
+  static bool hasBatteryWarning(int minutes) => false;
 }

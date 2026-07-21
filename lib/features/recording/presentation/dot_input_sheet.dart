@@ -6,9 +6,31 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/dimensions.dart';
 import '../../../shared/widgets/dottie_button.dart';
-import 'recording_provider.dart';
+import '../../cumulative_map/domain/place.dart';
+import '../../cumulative_map/presentation/cumulative_map_provider.dart';
+import '../../cumulative_map/presentation/room_places_provider.dart';
+import '../../cumulative_map/presentation/room_thumbnail_provider.dart';
+import '../../cumulative_map/presentation/widgets/place_search_sheet.dart';
+import '../../auth/presentation/auth_provider.dart';
+import '../../character/paperdoll/presentation/paperdoll_provider.dart';
+import '../../feed/domain/feed_entry.dart';
+import '../../feed/presentation/feed_provider.dart';
+import '../../feed/presentation/feed_local_photo_store.dart';
+import '../../room/presentation/room_provider.dart';
+import '../../timeline/presentation/timeline_provider.dart';
+import '../../search/presentation/tag_search_provider.dart';
+import '../data/dot_remote_source.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-const _emotions = ['😊', '😴', '🎉', '🍽️', '☕', '🏃', '😤', '🥰'];
+import '../../onboarding/domain/onboarding_step.dart';
+import '../../onboarding/presentation/onboarding_tour_provider.dart';
+import '../data/location_service.dart';
+import '../domain/dot_model.dart';
+import '../domain/tag_parser.dart';
+import 'dot_rate_limit_provider.dart';
+import 'recording_provider.dart';
+import 'widgets/emotion_picker.dart';
+import 'widgets/memo_with_tags_field.dart';
 
 class DotInputSheet extends ConsumerStatefulWidget {
   const DotInputSheet({super.key});
@@ -29,9 +51,10 @@ class DotInputSheet extends ConsumerStatefulWidget {
 }
 
 class _DotInputSheetState extends ConsumerState<DotInputSheet> {
-  final _memoController = TextEditingController();
+  final _memoController = HashtagAwareController();
   String? _selectedEmotion;
   String? _photoPath;
+  Place? _selectedPlace; // B8 — 사용자가 검색해서 선택한 장소
   bool _isSaving = false;
 
   @override
@@ -45,19 +68,40 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
     final session = ref.watch(activeRecordingProvider).valueOrNull;
     final isCapturing = session?.isCapturingLocation ?? false;
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    // 시트 최대 높이 — 화면의 92% 까지. 키보드가 올라와도 본문이 잘리지 않도록
+    // 본문은 ListView 로 스크롤 가능하게 두고, padding 으로 키보드 위까지 띄움.
+    final maxHeight = MediaQuery.of(context).size.height * 0.75;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: EdgeInsets.fromLTRB(
-          Dimensions.md, Dimensions.md, Dimensions.md, Dimensions.md + bottomPadding),
-      decoration: BoxDecoration(
-        color: DottieColors.surface,
-        borderRadius: BorderRadius.circular(Dimensions.radiusLg),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    // 저장 중일 때 시트 dismiss 차단 — 사용자가 swipe-down 또는 뒤로가기로
+    // 닫으면 dot 은 저장됐는데 UI 가 "안 됐다" 고 보여 중복 등록 위험. PopScope
+    // 가 dismiss 시도를 가로채 안내 메시지 표시.
+    return PopScope(
+      canPop: !_isSaving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _isSaving) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('저장 중이에요. 잠시만 기다려주세요')),
+          );
+        }
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        decoration: BoxDecoration(
+          color: DottieColors.surface,
+          borderRadius: BorderRadius.circular(Dimensions.radiusLg),
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.fromLTRB(
+              Dimensions.md,
+              Dimensions.md,
+              Dimensions.md,
+              Dimensions.md + bottomPadding),
+          children: [
           // 핸들
           Center(
             child: Container(
@@ -70,6 +114,10 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
             ),
           ).animate().fadeIn(duration: 200.ms),
           const SizedBox(height: Dimensions.md),
+
+          // 온보딩 투어 중일 때 힌트 배너
+          if (ref.watch(onboardingTourProvider) == OnboardingStep.dotSheet)
+            _TourHintBanner(),
 
           // 제목
           Row(
@@ -140,81 +188,89 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
           // 감정 이모지
           Text('지금 기분은?',
               style: GoogleFonts.notoSansKr(
-                  fontWeight: FontWeight.w600, fontSize: 14, color: DottieColors.textPrimary))
+                  fontWeight: FontWeight.w700, fontSize: 14, color: DottieColors.textPrimary))
               .animate()
               .fadeIn(duration: 280.ms, delay: 140.ms),
           const SizedBox(height: Dimensions.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _emotions
-                .asMap()
-                .entries
-                .map((entry) => GestureDetector(
-                      onTap: () => setState(() =>
-                          _selectedEmotion = _selectedEmotion == entry.value ? null : entry.value),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _selectedEmotion == entry.value
-                              ? DottieColors.primary.withAlpha(38)
-                              : DottieColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(Dimensions.radiusSm),
-                          border: _selectedEmotion == entry.value
-                              ? Border.all(color: DottieColors.primary, width: 1.5)
-                              : Border.all(color: DottieColors.border, width: 0.8),
-                        ),
-                        child: Text(entry.value, style: const TextStyle(fontSize: 22)),
-                      ),
-                    ).animate().fadeIn(
-                          duration: 240.ms,
-                          delay: (160 + entry.key * 20).ms,
-                        ))
-                .toList(),
+          EmotionPicker(
+            selected: _selectedEmotion,
+            onChanged: (e) => setState(() => _selectedEmotion = e),
           ),
           const SizedBox(height: Dimensions.md),
 
-          // 메모
-          TextField(
+          // 메모 + 해시태그 강조 + 자동완성
+          MemoWithTagsField(
             controller: _memoController,
-            decoration: const InputDecoration(
-              hintText: '한 줄 메모 (선택)',
-              prefixIcon: Icon(Icons.edit_outlined, size: 18),
-            ),
-            maxLines: 1,
+            suggestionFetcher: (prefix) =>
+                ref.read(tagAutocompleteProvider(prefix).future),
           )
               .animate()
               .fadeIn(duration: 280.ms, delay: 280.ms)
               .slideY(begin: 0.06, end: 0, duration: 280.ms, delay: 280.ms),
           const SizedBox(height: Dimensions.sm),
 
-          // 사진 추가
-          OutlinedButton.icon(
-            onPressed: _pickImage,
-            icon: const Icon(Icons.add_a_photo_outlined, size: 18),
-            label: Text(_photoPath != null ? '사진 선택됨 ✓' : '사진 추가 (선택)'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: DottieColors.primary,
-              side: const BorderSide(color: DottieColors.primary),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.radiusMd)),
-            ),
+          // 장소 + 사진 — 가로 2분할 (양옆으로 동일 너비).
+          Row(
+            children: [
+              Expanded(
+                child: _PickerButton(
+                  icon: Icons.place_outlined,
+                  label: _selectedPlace?.name ?? '장소',
+                  isSelected: _selectedPlace != null,
+                  onTap: _pickPlace,
+                  onClear: _selectedPlace != null
+                      ? () => setState(() => _selectedPlace = null)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _PickerButton(
+                  icon: Icons.add_a_photo_outlined,
+                  label: _photoPath != null ? '사진 선택됨' : '사진',
+                  isSelected: _photoPath != null,
+                  onTap: _pickImage,
+                  onClear: _photoPath != null
+                      ? () => setState(() => _photoPath = null)
+                      : null,
+                ),
+              ),
+            ],
           )
               .animate()
-              .fadeIn(duration: 280.ms, delay: 320.ms),
+              .fadeIn(duration: 280.ms, delay: 300.ms),
           const SizedBox(height: Dimensions.lg),
 
-          // 저장 버튼
-          DottieButton(
-            label: 'dot 찍기',
-            isLoading: _isSaving,
-            onTap: _saveDot,
+          // 저장 버튼 — 60초 rate limit 안에 있으면 disable + countdown.
+          Consumer(
+            builder: (context, ref, _) {
+              final asyncState = ref.watch(dotRateLimitProvider);
+              final remaining =
+                  asyncState.valueOrNull?.remainingSeconds ?? 0;
+              final limited = remaining > 0;
+              final isTourStep =
+                  ref.watch(onboardingTourProvider) == OnboardingStep.dotSheet;
+              if (!isTourStep) {
+                return DottieButton(
+                  label: limited ? '$remaining초 후 다시' : 'dot 찍기',
+                  isLoading: _isSaving,
+                  onTap: limited ? null : _saveDot,
+                );
+              }
+              // 투어 중: StatefulWidget으로 분리해 Consumer rebuild마다 재시작 방지
+              return _PulsingDotButton(
+                label: limited ? '$remaining초 후 다시' : 'dot 찍기',
+                isLoading: _isSaving,
+                onTap: limited ? null : _saveDot,
+              );
+            },
           )
               .animate()
               .fadeIn(duration: 280.ms, delay: 360.ms)
               .slideY(begin: 0.08, end: 0, duration: 280.ms, delay: 360.ms, curve: Curves.easeOutCubic),
         ],
+      ),
+      ),
       ),
     );
   }
@@ -246,24 +302,429 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
     if (file != null) setState(() => _photoPath = file.path);
   }
 
-  Future<void> _saveDot() async {
-    setState(() => _isSaving = true);
-    final result = await ref.read(activeRecordingProvider.notifier).captureDot(
-          memo: _memoController.text.trim().isEmpty
-              ? null
-              : _memoController.text.trim(),
-          emotion: _selectedEmotion,
-          photoLocalPath: _photoPath,
-        );
-    if (mounted) {
-      Navigator.pop(context, result.isFirst && result.dot != null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.dot != null
-              ? 'dot을 찍었어요! ${result.dot!.placeName ?? ''} 📍'
-              : '위치 수집에 실패했습니다.'),
-        ),
-      );
+  Future<void> _pickPlace() async {
+    // BE B8 — /places/search 는 latitude/longitude 필수.
+    // 현재 위치를 미리 받아 시트에 전달 → 좌표 기반 정확한 검색.
+    double? lat;
+    double? lng;
+    try {
+      final pos = await ref
+          .read(locationServiceProvider)
+          .getCurrentPosition();
+      lat = pos.latitude;
+      lng = pos.longitude;
+    } catch (e) {
+      if (!mounted) return;
+      _showLocationError(e);
+      return;
+    }
+    if (!mounted) return;
+    final picked = await PlaceSearchSheet.show(
+      context,
+      latitude: lat,
+      longitude: lng,
+      initialQuery: _selectedPlace?.name,
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedPlace = picked);
     }
   }
+
+  Future<void> _saveDot() async {
+    // pop 후에도 SnackBar 가 안전히 뜨도록 root ScaffoldMessenger 를 미리 확보.
+    // (시트 dismiss 후 시트 context 는 deactivated.)
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _isSaving = true);
+    var result = await _runCapture();
+    if (!mounted) return;
+    // 거리 초과 → 사용자 확인 후 override 재호출
+    if (result == null) {
+      setState(() => _isSaving = false);
+      return;
+    }
+    if (result.uploadError != null) {
+      setState(() => _isSaving = false);
+      _handleUploadError(messenger, result.uploadError!);
+      return;
+    }
+    if (result.tooFar != null) {
+      setState(() => _isSaving = false);
+      final confirm = await _confirmFarPlace(result.tooFar!);
+      if (!mounted || !confirm) return;
+      setState(() => _isSaving = true);
+      result = await _runCapture(overrideDistance: true);
+      if (!mounted) return;
+      if (result == null || result.tooFar != null) {
+        setState(() => _isSaving = false);
+        return;
+      }
+      if (result.uploadError != null) {
+        setState(() => _isSaving = false);
+        _handleUploadError(messenger, result.uploadError!);
+        return;
+      }
+    }
+    final captured = result.captured!;
+
+    // 사진 로컬 경로 등록 (BE variant 생성 전 피드 카드 즉시 표시용)
+    final photoUploadFailed = _photoPath != null &&
+        captured.dot != null &&
+        (captured.dot!.photoUrl == null || captured.dot!.photoUrl!.isEmpty);
+    if (_photoPath != null && captured.dot != null) {
+      ref
+          .read(feedLocalPhotoStoreProvider.notifier)
+          .set(captured.dot!.id, _photoPath!);
+    }
+
+    // 피드 낙관적 삽입 — 서버 refresh 없이 새 dot 즉시 피드 상단 표시.
+    if (captured.dot != null) {
+      final me = ref.read(currentDottieUserProvider).valueOrNull;
+      if (me != null) {
+        final colorHex = ref.read(paperdollProvider).valueOrNull?.colorHex
+            ?? me.character.colorHex;
+        final optimisticEntry = FeedEntry(
+          dot: captured.dot!,
+          authorId: me.uid,
+          authorNickname: me.nickname,
+          authorColorHex: colorHex,
+          isMine: true,
+          sharedRoomIds: const {},
+        );
+        // 전체 피드(null) 인스턴스에 즉시 삽입. room 필터 인스턴스는 서버 refresh 시 반영.
+        ref
+            .read(feedNotifierProvider(null).notifier)
+            .prependEntry(optimisticEntry);
+      }
+    }
+    // 새 dot 이 저장됐으니 rate limit 카운트다운을 즉시 60초로 리셋.
+    ref.read(dotRateLimitProvider.notifier).onDotSaved();
+    // D — BE B14 자동 share: auto_share=true 룸들에 dot 의 day_log 가
+    // 자동 share 됐을 수 있음. FE 측 룸 관련 캐시 모두 invalidate해
+    // 다음 룸 진입 시 새 dot 이 즉시 누적 지도/하루 지도에 반영되도록.
+    ref.invalidate(roomListProvider);
+    // 모든 cumulative / places / thumbnail provider 무효화 — family 단위라
+    // 어떤 roomId 가 auto_share 인지 클라이언트는 모름. 무차별 invalidate.
+    ref.invalidate(cumulativeRoomDotsProvider);
+    ref.invalidate(roomPlacesProvider);
+    ref.invalidate(roomThumbnailUrlProvider);
+    // allDayLogs / todayDayLog: today_map / timeline 이 watch 중이라 keepAlive
+    // 상태. 명시 invalidate 없으면 feed rebuild 시 stale 캐시를 반환해 새 dot 누락.
+    ref.invalidate(allDayLogsProvider);
+    ref.invalidate(todayDayLogProvider);
+    ref.invalidate(timelineDayLogsProvider);
+    // feedNotifierProvider 는 여기서 invalidate 하지 않음.
+    // prependEntry 로 낙관적 삽입한 직후 invalidate 하면 family 전체가 rebuild 되고
+    // 서버 응답이 optimistic state 를 덮어써서 새 dot/사진이 즉시 사라지는 버그 발생.
+    // 피드는 사용자의 pull-to-refresh 또는 다음 진입 시 서버 데이터로 갱신됨.
+    Navigator.pop(context, captured.isFirst && captured.dot != null);
+    // pop 직후 시트 context 는 deactivated — root messenger 사용.
+    final String successMsg;
+    if (captured.dot == null) {
+      successMsg = '위치 수집에 실패했습니다.';
+    } else if (photoUploadFailed) {
+      // dot 자체는 저장. 사진만 실패 — 사용자에게 명시. 로컬 path 가 보존돼
+      // 다음에 다시 시도 가능 (현재는 수동 — 향후 background sync).
+      successMsg = '사진 업로드에 실패했어요. dot 은 저장됐어요.';
+    } else {
+      successMsg = 'dot을 찍었어요! ${captured.dot!.placeName ?? ''} 📍';
+    }
+    messenger.showSnackBar(SnackBar(content: Text(successMsg)));
+  }
+
+  /// captureDot 실행 wrapper — PlaceTooFarException / DotUploadException 을 결과로 변환.
+  Future<_CaptureOutcome?> _runCapture({bool overrideDistance = false}) async {
+    try {
+      final memo = _memoController.text.trim();
+      // 태그는 메모 본문에서 #토큰 정규식 추출 후 정규화. 메모 원문은 그대로 보존.
+      final tags = TagParser.extractFromText(memo);
+      final res =
+          await ref.read(activeRecordingProvider.notifier).captureDot(
+                memo: memo.isEmpty ? null : memo,
+                emotion: _selectedEmotion,
+                photoLocalPath: _photoPath,
+                placeId: _selectedPlace?.id,
+                placeLat: _selectedPlace?.latitude,
+                placeLng: _selectedPlace?.longitude,
+                placeOverride: _selectedPlace,
+                overrideDistanceCheck: overrideDistance,
+                tags: tags,
+              );
+      return _CaptureOutcome.captured(res);
+    } on LocationException catch (e) {
+      // 권한 거부 / 서비스 OFF / GPS 타임아웃 → "설정 열기" 안내 SnackBar
+      if (mounted) _showLocationError(e);
+      return null;
+    } on PlaceTooFarException catch (e) {
+      return _CaptureOutcome.tooFar(e);
+    } on DotUploadException catch (e) {
+      return _CaptureOutcome.uploadError(e);
+    }
+  }
+
+  /// 위치 권한/서비스 에러 SnackBar. 영구 거부 / 서비스 OFF 시 *설정 열기* 액션
+  /// 노출 — 사용자가 시스템 설정 앱을 찾지 못하는 친구 회피.
+  void _showLocationError(Object e) {
+    final messenger = ScaffoldMessenger.of(context);
+    if (e is LocationException && e.shouldOpenSettings) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          action: SnackBarAction(
+            label: '설정 열기',
+            onPressed: () => openAppSettings(),
+          ),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+    final msg = e is LocationException ? e.message : '위치를 가져오지 못했어요';
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// BE 4xx 응답 분기 — 메시지 + 사이드 이펙트 (RATE_LIMITED 의 경우 카운트다운 갱신).
+  void _handleUploadError(
+      ScaffoldMessengerState messenger, DotUploadException e) {
+    if (e.isRateLimited) {
+      // BE 가 알려준 정확한 retry 시점으로 카운트다운 동기화.
+      final retry = e.retryAfterSeconds ?? 60;
+      ref.read(dotRateLimitProvider.notifier).bumpFromServer(retry);
+      messenger.showSnackBar(
+        SnackBar(content: Text('$retry초 후에 다시 시도할 수 있어요')),
+      );
+      return;
+    }
+    final msg = switch (e.code) {
+      'INVALID_TAG_FORMAT' => '태그 형식이 올바르지 않아요',
+      'TAGS_TOO_MANY' => '태그는 최대 10개까지만 가능해요',
+      'INVALID_TIMESTAMP' => '시간 정보가 잘못됐어요. 다시 시도해 주세요',
+      _ => e.message ?? 'dot 저장에 실패했어요',
+    };
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<bool> _confirmFarPlace(PlaceTooFarException e) async {
+    final placeName = _selectedPlace?.name ?? '선택한 장소';
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('장소가 멀어요',
+            style: GoogleFonts.notoSansKr(fontWeight: FontWeight.w700)),
+        content: Text(
+          '"$placeName" 은(는) 현재 위치에서 ${e.distanceM.toStringAsFixed(0)}m 떨어져 있어요.\n그래도 등록할까요?',
+          style: GoogleFonts.notoSansKr(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text('취소',
+                style: GoogleFonts.notoSansKr(
+                    color: DottieColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('등록',
+                style: GoogleFonts.notoSansKr(
+                    color: DottieColors.primary,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+}
+
+/// 장소/사진 가로 2분할 picker 버튼.
+/// - 미선택: outline 만, primary 색.
+/// - 선택됨: 살짝 fill + 우측에 X 아이콘 (탭 시 onClear).
+class _PickerButton extends StatelessWidget {
+  const _PickerButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.onClear,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  /// null 이면 X 아이콘 미노출 (= 미선택 상태). 탭 시 선택 해제 콜백.
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: DottieColors.primary,
+        side: BorderSide(
+          color: isSelected
+              ? DottieColors.primary
+              : DottieColors.primary.withAlpha(140),
+          width: isSelected ? 1.4 : 1.0,
+        ),
+        backgroundColor:
+            isSelected ? DottieColors.primary.withAlpha(20) : null,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.notoSansKr(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (onClear != null) ...[
+            const SizedBox(width: 4),
+            // child 의 InkResponse onTap 이 parent OutlinedButton 보다 우선
+            // hit-test 되므로 X 탭은 선택 해제만 수행 (picker 다시 안 열림).
+            InkResponse(
+              onTap: onClear,
+              radius: 14,
+              child: const Padding(
+                padding: EdgeInsets.all(2),
+                child: Icon(Icons.close_rounded, size: 16),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── 온보딩 투어 Pulsing 저장 버튼 ──────────────────────────────────────
+//
+// Consumer rebuild (dotRateLimitProvider 1초마다 갱신)마다 flutter_animate가
+// 재시작되는 문제를 방지하기 위해 AnimationController를 직접 관리하는 위젯으로 분리.
+
+class _PulsingDotButton extends StatefulWidget {
+  const _PulsingDotButton({
+    required this.label,
+    required this.isLoading,
+    required this.onTap,
+  });
+  final String label;
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  @override
+  State<_PulsingDotButton> createState() => _PulsingDotButtonState();
+}
+
+class _PulsingDotButtonState extends State<_PulsingDotButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (_, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: DottieColors.primary.withValues(alpha: _pulse.value * 0.55),
+              blurRadius: _pulse.value * 22,
+              spreadRadius: _pulse.value * 2,
+            ),
+          ],
+        ),
+        child: child,
+      ),
+      child: DottieButton(
+        label: widget.label,
+        isLoading: widget.isLoading,
+        onTap: widget.onTap,
+      ),
+    );
+  }
+}
+
+// ── 온보딩 투어 힌트 배너 ──────────────────────────────────────
+
+class _TourHintBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: DottieColors.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: DottieColors.primary.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.tips_and_updates_outlined,
+              color: DottieColors.primary, size: 17),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '메모나 사진은 선택사항이에요.\n저장만 눌러도 지금 위치가 기록돼요!',
+              style: GoogleFonts.notoSansKr(
+                color: DottieColors.primary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.55,
+              ),
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 300.ms, delay: 150.ms)
+        .slideY(begin: -0.1, end: 0, duration: 300.ms, delay: 150.ms, curve: Curves.easeOutCubic);
+  }
+}
+
+/// captureDot 결과 — 정상 / 거리 초과 / BE 업로드 거부 분기.
+class _CaptureOutcome {
+  const _CaptureOutcome._({this.captured, this.tooFar, this.uploadError});
+  factory _CaptureOutcome.captured(({Dot? dot, bool isFirst}) r) =>
+      _CaptureOutcome._(captured: r);
+  factory _CaptureOutcome.tooFar(PlaceTooFarException e) =>
+      _CaptureOutcome._(tooFar: e);
+  factory _CaptureOutcome.uploadError(DotUploadException e) =>
+      _CaptureOutcome._(uploadError: e);
+  final ({Dot? dot, bool isFirst})? captured;
+  final PlaceTooFarException? tooFar;
+  final DotUploadException? uploadError;
 }

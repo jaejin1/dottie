@@ -6,7 +6,7 @@ part of 'timeline_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$timelineDayLogsHash() => r'aded2c07698c52067f6283d01a8db1ae04c9becd';
+String _$timelineDayLogsHash() => r'e79d7853fc44c88287393f942cb38ea7c513854c';
 
 /// See also [timelineDayLogs].
 @ProviderFor(timelineDayLogs)

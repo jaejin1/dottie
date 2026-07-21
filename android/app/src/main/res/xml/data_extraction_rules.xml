@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  보안: 이 앱은 시간별 위치 이력을 로컬 DB(dottie.db)에 저장한다.
+  클라우드 백업과 기기 간 이전(D2D)에서 앱 데이터를 모두 제외해,
+  adb backup / 클라우드 백업 / 기기 이전 경로로 위치 이력이 유출되는 것을
+  차단한다. (Android 12+ 는 fullBackupContent 대신 이 규칙을 사용.)
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

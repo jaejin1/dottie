@@ -1,7 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../../core/constants/colors.dart';
 import '../../../../../core/constants/dimensions.dart';
+import '../../data/paperdoll_renderer.dart';
 import '../../domain/paperdoll_parts.dart';
 
 /// 부위 옵션 그리드. 썸네일 PNG가 없으면 ID 텍스트로 표시.
@@ -20,9 +24,43 @@ class PartPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(Dimensions.lg),
-        child: Text('이 부위는 아직 옵션이 없어요'),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: DottieColors.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 30,
+                color: DottieColors.textHint,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              '준비 중이에요',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: DottieColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '곧 새로운 옵션을 만나볼 수 있어요',
+              style: TextStyle(
+                fontSize: 12,
+                color: DottieColors.textHint,
+              ),
+            ),
+          ],
+        ),
       );
     }
     return GridView.builder(
@@ -80,21 +118,112 @@ class PartPicker extends StatelessWidget {
   }
 }
 
-class _Thumbnail extends StatelessWidget {
+/// LPC sprite sheet에서 정면(row 2) 첫 프레임만 잘라 보여주는 썸네일.
+///
+/// `Image.asset`은 시트 전체(832x256)를 그대로 보여주므로 부적합.
+/// 실제 캐릭터 영역(64x64 frame)만 crop해 표시한다.
+class _Thumbnail extends StatefulWidget {
   const _Thumbnail({required this.assetPath});
   final String assetPath;
 
   @override
+  State<_Thumbnail> createState() => _ThumbnailState();
+}
+
+class _ThumbnailState extends State<_Thumbnail> {
+  ui.Image? _image;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Thumbnail old) {
+    super.didUpdateWidget(old);
+    if (old.assetPath != widget.assetPath) {
+      _image = null;
+      _failed = false;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await rootBundle.load(widget.assetPath);
+      final image = await decodeImageFromList(data.buffer.asUint8List());
+      if (!mounted) return;
+      setState(() => _image = image);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _failed = true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      assetPath,
-      filterQuality: FilterQuality.none,
-      errorBuilder: (_, __, ___) => const Center(
+    if (_failed) {
+      return const Center(
         child: Icon(Icons.image_outlined,
             size: 24, color: DottieColors.textHint),
+      );
+    }
+    if (_image == null) {
+      return const SizedBox.shrink();
+    }
+    return CustomPaint(
+      painter: _SpriteFramePainter(
+        image: _image!,
+        frameW: 64,
+        frameH: 64,
+        frameIndex: 0,
+        frameRow: kLpcFrontFacingRow,
       ),
+      child: const SizedBox.expand(),
     );
   }
+}
+
+class _SpriteFramePainter extends CustomPainter {
+  _SpriteFramePainter({
+    required this.image,
+    required this.frameW,
+    required this.frameH,
+    required this.frameIndex,
+    required this.frameRow,
+  });
+
+  final ui.Image image;
+  final int frameW;
+  final int frameH;
+  final int frameIndex;
+  final int frameRow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final maxRow = (image.height ~/ frameH) - 1;
+    final safeRow = frameRow.clamp(0, maxRow < 0 ? 0 : maxRow);
+    final src = Rect.fromLTWH(
+      (frameIndex * frameW).toDouble(),
+      (safeRow * frameH).toDouble(),
+      frameW.toDouble(),
+      frameH.toDouble(),
+    );
+    // contain fit — 정사각형 프레임을 정사각형 영역에 맞춤
+    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
+    final paint = Paint()
+      ..filterQuality = FilterQuality.none
+      ..isAntiAlias = false;
+    canvas.drawImageRect(image, src, dst, paint);
+  }
+
+  @override
+  bool shouldRepaint(_SpriteFramePainter old) =>
+      old.image != image ||
+      old.frameIndex != frameIndex ||
+      old.frameRow != frameRow;
 }
 
 /// 색상 팔레트 (tintable 슬롯에서만 노출).

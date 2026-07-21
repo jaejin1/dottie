@@ -33,6 +33,12 @@ mixin _$Room {
   @JsonKey(name: 'shared_dates')
   List<String> get sharedDates => throw _privateConstructorUsedError;
 
+  /// 자동 공유 — 새로 찍은 dot 의 day_log 가 이 룸에 자동 share 되는지.
+  /// 디폴트 false (프라이버시 우선 — 사용자가 명시적으로 켜야 자동 공유).
+  /// 룸별 / 사용자별 독립 설정 — 다른 멤버에게 영향 없음.
+  @JsonKey(name: 'auto_share')
+  bool get autoShare => throw _privateConstructorUsedError;
+
   /// Serializes this Room to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -55,6 +61,7 @@ abstract class $RoomCopyWith<$Res> {
     @JsonKey(name: 'created_at') DateTime createdAt,
     @JsonKey(name: 'invite_code') String? inviteCode,
     @JsonKey(name: 'shared_dates') List<String> sharedDates,
+    @JsonKey(name: 'auto_share') bool autoShare,
   });
 }
 
@@ -80,6 +87,7 @@ class _$RoomCopyWithImpl<$Res, $Val extends Room>
     Object? createdAt = null,
     Object? inviteCode = freezed,
     Object? sharedDates = null,
+    Object? autoShare = null,
   }) {
     return _then(
       _value.copyWith(
@@ -111,6 +119,10 @@ class _$RoomCopyWithImpl<$Res, $Val extends Room>
                 ? _value.sharedDates
                 : sharedDates // ignore: cast_nullable_to_non_nullable
                       as List<String>,
+            autoShare: null == autoShare
+                ? _value.autoShare
+                : autoShare // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -133,6 +145,7 @@ abstract class _$$RoomImplCopyWith<$Res> implements $RoomCopyWith<$Res> {
     @JsonKey(name: 'created_at') DateTime createdAt,
     @JsonKey(name: 'invite_code') String? inviteCode,
     @JsonKey(name: 'shared_dates') List<String> sharedDates,
+    @JsonKey(name: 'auto_share') bool autoShare,
   });
 }
 
@@ -155,6 +168,7 @@ class __$$RoomImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? inviteCode = freezed,
     Object? sharedDates = null,
+    Object? autoShare = null,
   }) {
     return _then(
       _$RoomImpl(
@@ -186,6 +200,10 @@ class __$$RoomImplCopyWithImpl<$Res>
             ? _value._sharedDates
             : sharedDates // ignore: cast_nullable_to_non_nullable
                   as List<String>,
+        autoShare: null == autoShare
+            ? _value.autoShare
+            : autoShare // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -202,6 +220,7 @@ class _$RoomImpl implements _Room {
     @JsonKey(name: 'created_at') required this.createdAt,
     @JsonKey(name: 'invite_code') this.inviteCode,
     @JsonKey(name: 'shared_dates') final List<String> sharedDates = const [],
+    @JsonKey(name: 'auto_share') this.autoShare = false,
   }) : _members = members,
        _sharedDates = sharedDates;
 
@@ -239,9 +258,16 @@ class _$RoomImpl implements _Room {
     return EqualUnmodifiableListView(_sharedDates);
   }
 
+  /// 자동 공유 — 새로 찍은 dot 의 day_log 가 이 룸에 자동 share 되는지.
+  /// 디폴트 false (프라이버시 우선 — 사용자가 명시적으로 켜야 자동 공유).
+  /// 룸별 / 사용자별 독립 설정 — 다른 멤버에게 영향 없음.
+  @override
+  @JsonKey(name: 'auto_share')
+  final bool autoShare;
+
   @override
   String toString() {
-    return 'Room(id: $id, name: $name, ownerId: $ownerId, members: $members, createdAt: $createdAt, inviteCode: $inviteCode, sharedDates: $sharedDates)';
+    return 'Room(id: $id, name: $name, ownerId: $ownerId, members: $members, createdAt: $createdAt, inviteCode: $inviteCode, sharedDates: $sharedDates, autoShare: $autoShare)';
   }
 
   @override
@@ -260,7 +286,9 @@ class _$RoomImpl implements _Room {
             const DeepCollectionEquality().equals(
               other._sharedDates,
               _sharedDates,
-            ));
+            ) &&
+            (identical(other.autoShare, autoShare) ||
+                other.autoShare == autoShare));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -274,6 +302,7 @@ class _$RoomImpl implements _Room {
     createdAt,
     inviteCode,
     const DeepCollectionEquality().hash(_sharedDates),
+    autoShare,
   );
 
   /// Create a copy of Room
@@ -299,6 +328,7 @@ abstract class _Room implements Room {
     @JsonKey(name: 'created_at') required final DateTime createdAt,
     @JsonKey(name: 'invite_code') final String? inviteCode,
     @JsonKey(name: 'shared_dates') final List<String> sharedDates,
+    @JsonKey(name: 'auto_share') final bool autoShare,
   }) = _$RoomImpl;
 
   factory _Room.fromJson(Map<String, dynamic> json) = _$RoomImpl.fromJson;
@@ -321,6 +351,13 @@ abstract class _Room implements Room {
   @override
   @JsonKey(name: 'shared_dates')
   List<String> get sharedDates;
+
+  /// 자동 공유 — 새로 찍은 dot 의 day_log 가 이 룸에 자동 share 되는지.
+  /// 디폴트 false (프라이버시 우선 — 사용자가 명시적으로 켜야 자동 공유).
+  /// 룸별 / 사용자별 독립 설정 — 다른 멤버에게 영향 없음.
+  @override
+  @JsonKey(name: 'auto_share')
+  bool get autoShare;
 
   /// Create a copy of Room
   /// with the given fields replaced by the non-null parameter values.

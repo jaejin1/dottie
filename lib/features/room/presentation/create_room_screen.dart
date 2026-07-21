@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
 import 'room_provider.dart';
@@ -175,6 +176,16 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
             },
             icon: const Icon(Icons.copy_rounded, size: 16),
             label: const Text('복사'),
+          ),
+          TextButton.icon(
+            onPressed: () {
+              final link =
+                  'https://app.dottie.today/invite/room/$inviteCode';
+              Share.share(
+                  '$roomName에 초대합니다!\n$link');
+            },
+            icon: const Icon(Icons.share_rounded, size: 16),
+            label: const Text('링크 공유'),
           ),
           FilledButton(
             onPressed: () {

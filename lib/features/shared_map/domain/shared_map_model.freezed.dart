@@ -19,7 +19,7 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$MemberTrack {
   String get memberId => throw _privateConstructorUsedError;
   String get nickname => throw _privateConstructorUsedError;
-  String get colorKey => throw _privateConstructorUsedError;
+  String get colorHex => throw _privateConstructorUsedError;
   AnimationSequence get sequence => throw _privateConstructorUsedError;
 
   /// Create a copy of MemberTrack
@@ -39,7 +39,7 @@ abstract class $MemberTrackCopyWith<$Res> {
   $Res call({
     String memberId,
     String nickname,
-    String colorKey,
+    String colorHex,
     AnimationSequence sequence,
   });
 
@@ -63,7 +63,7 @@ class _$MemberTrackCopyWithImpl<$Res, $Val extends MemberTrack>
   $Res call({
     Object? memberId = null,
     Object? nickname = null,
-    Object? colorKey = null,
+    Object? colorHex = null,
     Object? sequence = null,
   }) {
     return _then(
@@ -76,9 +76,9 @@ class _$MemberTrackCopyWithImpl<$Res, $Val extends MemberTrack>
                 ? _value.nickname
                 : nickname // ignore: cast_nullable_to_non_nullable
                       as String,
-            colorKey: null == colorKey
-                ? _value.colorKey
-                : colorKey // ignore: cast_nullable_to_non_nullable
+            colorHex: null == colorHex
+                ? _value.colorHex
+                : colorHex // ignore: cast_nullable_to_non_nullable
                       as String,
             sequence: null == sequence
                 ? _value.sequence
@@ -112,7 +112,7 @@ abstract class _$$MemberTrackImplCopyWith<$Res>
   $Res call({
     String memberId,
     String nickname,
-    String colorKey,
+    String colorHex,
     AnimationSequence sequence,
   });
 
@@ -136,7 +136,7 @@ class __$$MemberTrackImplCopyWithImpl<$Res>
   $Res call({
     Object? memberId = null,
     Object? nickname = null,
-    Object? colorKey = null,
+    Object? colorHex = null,
     Object? sequence = null,
   }) {
     return _then(
@@ -149,9 +149,9 @@ class __$$MemberTrackImplCopyWithImpl<$Res>
             ? _value.nickname
             : nickname // ignore: cast_nullable_to_non_nullable
                   as String,
-        colorKey: null == colorKey
-            ? _value.colorKey
-            : colorKey // ignore: cast_nullable_to_non_nullable
+        colorHex: null == colorHex
+            ? _value.colorHex
+            : colorHex // ignore: cast_nullable_to_non_nullable
                   as String,
         sequence: null == sequence
             ? _value.sequence
@@ -168,7 +168,7 @@ class _$MemberTrackImpl implements _MemberTrack {
   const _$MemberTrackImpl({
     required this.memberId,
     required this.nickname,
-    required this.colorKey,
+    required this.colorHex,
     required this.sequence,
   });
 
@@ -177,13 +177,13 @@ class _$MemberTrackImpl implements _MemberTrack {
   @override
   final String nickname;
   @override
-  final String colorKey;
+  final String colorHex;
   @override
   final AnimationSequence sequence;
 
   @override
   String toString() {
-    return 'MemberTrack(memberId: $memberId, nickname: $nickname, colorKey: $colorKey, sequence: $sequence)';
+    return 'MemberTrack(memberId: $memberId, nickname: $nickname, colorHex: $colorHex, sequence: $sequence)';
   }
 
   @override
@@ -195,15 +195,15 @@ class _$MemberTrackImpl implements _MemberTrack {
                 other.memberId == memberId) &&
             (identical(other.nickname, nickname) ||
                 other.nickname == nickname) &&
-            (identical(other.colorKey, colorKey) ||
-                other.colorKey == colorKey) &&
+            (identical(other.colorHex, colorHex) ||
+                other.colorHex == colorHex) &&
             (identical(other.sequence, sequence) ||
                 other.sequence == sequence));
   }
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, memberId, nickname, colorKey, sequence);
+      Object.hash(runtimeType, memberId, nickname, colorHex, sequence);
 
   /// Create a copy of MemberTrack
   /// with the given fields replaced by the non-null parameter values.
@@ -218,7 +218,7 @@ abstract class _MemberTrack implements MemberTrack {
   const factory _MemberTrack({
     required final String memberId,
     required final String nickname,
-    required final String colorKey,
+    required final String colorHex,
     required final AnimationSequence sequence,
   }) = _$MemberTrackImpl;
 
@@ -227,7 +227,7 @@ abstract class _MemberTrack implements MemberTrack {
   @override
   String get nickname;
   @override
-  String get colorKey;
+  String get colorHex;
   @override
   AnimationSequence get sequence;
 
@@ -242,7 +242,7 @@ abstract class _MemberTrack implements MemberTrack {
 /// @nodoc
 mixin _$CharacterPosition {
   String get memberId => throw _privateConstructorUsedError;
-  String get colorKey => throw _privateConstructorUsedError;
+  String get colorHex => throw _privateConstructorUsedError;
   double get lat => throw _privateConstructorUsedError;
   double get lng => throw _privateConstructorUsedError;
   CharacterState get state => throw _privateConstructorUsedError;
@@ -263,7 +263,7 @@ abstract class $CharacterPositionCopyWith<$Res> {
   @useResult
   $Res call({
     String memberId,
-    String colorKey,
+    String colorHex,
     double lat,
     double lng,
     CharacterState state,
@@ -286,7 +286,7 @@ class _$CharacterPositionCopyWithImpl<$Res, $Val extends CharacterPosition>
   @override
   $Res call({
     Object? memberId = null,
-    Object? colorKey = null,
+    Object? colorHex = null,
     Object? lat = null,
     Object? lng = null,
     Object? state = null,
@@ -297,9 +297,9 @@ class _$CharacterPositionCopyWithImpl<$Res, $Val extends CharacterPosition>
                 ? _value.memberId
                 : memberId // ignore: cast_nullable_to_non_nullable
                       as String,
-            colorKey: null == colorKey
-                ? _value.colorKey
-                : colorKey // ignore: cast_nullable_to_non_nullable
+            colorHex: null == colorHex
+                ? _value.colorHex
+                : colorHex // ignore: cast_nullable_to_non_nullable
                       as String,
             lat: null == lat
                 ? _value.lat
@@ -330,7 +330,7 @@ abstract class _$$CharacterPositionImplCopyWith<$Res>
   @useResult
   $Res call({
     String memberId,
-    String colorKey,
+    String colorHex,
     double lat,
     double lng,
     CharacterState state,
@@ -352,7 +352,7 @@ class __$$CharacterPositionImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? memberId = null,
-    Object? colorKey = null,
+    Object? colorHex = null,
     Object? lat = null,
     Object? lng = null,
     Object? state = null,
@@ -363,9 +363,9 @@ class __$$CharacterPositionImplCopyWithImpl<$Res>
             ? _value.memberId
             : memberId // ignore: cast_nullable_to_non_nullable
                   as String,
-        colorKey: null == colorKey
-            ? _value.colorKey
-            : colorKey // ignore: cast_nullable_to_non_nullable
+        colorHex: null == colorHex
+            ? _value.colorHex
+            : colorHex // ignore: cast_nullable_to_non_nullable
                   as String,
         lat: null == lat
             ? _value.lat
@@ -389,7 +389,7 @@ class __$$CharacterPositionImplCopyWithImpl<$Res>
 class _$CharacterPositionImpl implements _CharacterPosition {
   const _$CharacterPositionImpl({
     required this.memberId,
-    required this.colorKey,
+    required this.colorHex,
     required this.lat,
     required this.lng,
     required this.state,
@@ -398,7 +398,7 @@ class _$CharacterPositionImpl implements _CharacterPosition {
   @override
   final String memberId;
   @override
-  final String colorKey;
+  final String colorHex;
   @override
   final double lat;
   @override
@@ -408,7 +408,7 @@ class _$CharacterPositionImpl implements _CharacterPosition {
 
   @override
   String toString() {
-    return 'CharacterPosition(memberId: $memberId, colorKey: $colorKey, lat: $lat, lng: $lng, state: $state)';
+    return 'CharacterPosition(memberId: $memberId, colorHex: $colorHex, lat: $lat, lng: $lng, state: $state)';
   }
 
   @override
@@ -418,8 +418,8 @@ class _$CharacterPositionImpl implements _CharacterPosition {
             other is _$CharacterPositionImpl &&
             (identical(other.memberId, memberId) ||
                 other.memberId == memberId) &&
-            (identical(other.colorKey, colorKey) ||
-                other.colorKey == colorKey) &&
+            (identical(other.colorHex, colorHex) ||
+                other.colorHex == colorHex) &&
             (identical(other.lat, lat) || other.lat == lat) &&
             (identical(other.lng, lng) || other.lng == lng) &&
             (identical(other.state, state) || other.state == state));
@@ -427,7 +427,7 @@ class _$CharacterPositionImpl implements _CharacterPosition {
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, memberId, colorKey, lat, lng, state);
+      Object.hash(runtimeType, memberId, colorHex, lat, lng, state);
 
   /// Create a copy of CharacterPosition
   /// with the given fields replaced by the non-null parameter values.
@@ -444,7 +444,7 @@ class _$CharacterPositionImpl implements _CharacterPosition {
 abstract class _CharacterPosition implements CharacterPosition {
   const factory _CharacterPosition({
     required final String memberId,
-    required final String colorKey,
+    required final String colorHex,
     required final double lat,
     required final double lng,
     required final CharacterState state,
@@ -453,7 +453,7 @@ abstract class _CharacterPosition implements CharacterPosition {
   @override
   String get memberId;
   @override
-  String get colorKey;
+  String get colorHex;
   @override
   double get lat;
   @override
@@ -471,10 +471,15 @@ abstract class _CharacterPosition implements CharacterPosition {
 
 /// @nodoc
 mixin _$MeetingEvent {
-  String get memberIdA => throw _privateConstructorUsedError;
-  String get memberIdB => throw _privateConstructorUsedError;
+  List<String> get userIds => throw _privateConstructorUsedError;
   double get lat => throw _privateConstructorUsedError;
-  double get lng => throw _privateConstructorUsedError;
+  double get lng =>
+      throw _privateConstructorUsedError; // BE 보강 필드 (클라이언트 detect 는 null/빈 list)
+  DateTime? get startedAt => throw _privateConstructorUsedError;
+  int? get durationMinutes => throw _privateConstructorUsedError;
+  String? get placeName => throw _privateConstructorUsedError;
+  List<String> get dotIds => throw _privateConstructorUsedError;
+  double? get maxDistanceM => throw _privateConstructorUsedError;
 
   /// Create a copy of MeetingEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -490,7 +495,16 @@ abstract class $MeetingEventCopyWith<$Res> {
     $Res Function(MeetingEvent) then,
   ) = _$MeetingEventCopyWithImpl<$Res, MeetingEvent>;
   @useResult
-  $Res call({String memberIdA, String memberIdB, double lat, double lng});
+  $Res call({
+    List<String> userIds,
+    double lat,
+    double lng,
+    DateTime? startedAt,
+    int? durationMinutes,
+    String? placeName,
+    List<String> dotIds,
+    double? maxDistanceM,
+  });
 }
 
 /// @nodoc
@@ -508,21 +522,21 @@ class _$MeetingEventCopyWithImpl<$Res, $Val extends MeetingEvent>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? memberIdA = null,
-    Object? memberIdB = null,
+    Object? userIds = null,
     Object? lat = null,
     Object? lng = null,
+    Object? startedAt = freezed,
+    Object? durationMinutes = freezed,
+    Object? placeName = freezed,
+    Object? dotIds = null,
+    Object? maxDistanceM = freezed,
   }) {
     return _then(
       _value.copyWith(
-            memberIdA: null == memberIdA
-                ? _value.memberIdA
-                : memberIdA // ignore: cast_nullable_to_non_nullable
-                      as String,
-            memberIdB: null == memberIdB
-                ? _value.memberIdB
-                : memberIdB // ignore: cast_nullable_to_non_nullable
-                      as String,
+            userIds: null == userIds
+                ? _value.userIds
+                : userIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
             lat: null == lat
                 ? _value.lat
                 : lat // ignore: cast_nullable_to_non_nullable
@@ -531,6 +545,26 @@ class _$MeetingEventCopyWithImpl<$Res, $Val extends MeetingEvent>
                 ? _value.lng
                 : lng // ignore: cast_nullable_to_non_nullable
                       as double,
+            startedAt: freezed == startedAt
+                ? _value.startedAt
+                : startedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            durationMinutes: freezed == durationMinutes
+                ? _value.durationMinutes
+                : durationMinutes // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            placeName: freezed == placeName
+                ? _value.placeName
+                : placeName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            dotIds: null == dotIds
+                ? _value.dotIds
+                : dotIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>,
+            maxDistanceM: freezed == maxDistanceM
+                ? _value.maxDistanceM
+                : maxDistanceM // ignore: cast_nullable_to_non_nullable
+                      as double?,
           )
           as $Val,
     );
@@ -546,7 +580,16 @@ abstract class _$$MeetingEventImplCopyWith<$Res>
   ) = __$$MeetingEventImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String memberIdA, String memberIdB, double lat, double lng});
+  $Res call({
+    List<String> userIds,
+    double lat,
+    double lng,
+    DateTime? startedAt,
+    int? durationMinutes,
+    String? placeName,
+    List<String> dotIds,
+    double? maxDistanceM,
+  });
 }
 
 /// @nodoc
@@ -563,21 +606,21 @@ class __$$MeetingEventImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? memberIdA = null,
-    Object? memberIdB = null,
+    Object? userIds = null,
     Object? lat = null,
     Object? lng = null,
+    Object? startedAt = freezed,
+    Object? durationMinutes = freezed,
+    Object? placeName = freezed,
+    Object? dotIds = null,
+    Object? maxDistanceM = freezed,
   }) {
     return _then(
       _$MeetingEventImpl(
-        memberIdA: null == memberIdA
-            ? _value.memberIdA
-            : memberIdA // ignore: cast_nullable_to_non_nullable
-                  as String,
-        memberIdB: null == memberIdB
-            ? _value.memberIdB
-            : memberIdB // ignore: cast_nullable_to_non_nullable
-                  as String,
+        userIds: null == userIds
+            ? _value._userIds
+            : userIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
         lat: null == lat
             ? _value.lat
             : lat // ignore: cast_nullable_to_non_nullable
@@ -586,6 +629,26 @@ class __$$MeetingEventImplCopyWithImpl<$Res>
             ? _value.lng
             : lng // ignore: cast_nullable_to_non_nullable
                   as double,
+        startedAt: freezed == startedAt
+            ? _value.startedAt
+            : startedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        durationMinutes: freezed == durationMinutes
+            ? _value.durationMinutes
+            : durationMinutes // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        placeName: freezed == placeName
+            ? _value.placeName
+            : placeName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        dotIds: null == dotIds
+            ? _value._dotIds
+            : dotIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>,
+        maxDistanceM: freezed == maxDistanceM
+            ? _value.maxDistanceM
+            : maxDistanceM // ignore: cast_nullable_to_non_nullable
+                  as double?,
       ),
     );
   }
@@ -595,24 +658,51 @@ class __$$MeetingEventImplCopyWithImpl<$Res>
 
 class _$MeetingEventImpl implements _MeetingEvent {
   const _$MeetingEventImpl({
-    required this.memberIdA,
-    required this.memberIdB,
+    required final List<String> userIds,
     required this.lat,
     required this.lng,
-  });
+    this.startedAt,
+    this.durationMinutes,
+    this.placeName,
+    final List<String> dotIds = const [],
+    this.maxDistanceM,
+  }) : _userIds = userIds,
+       _dotIds = dotIds;
 
+  final List<String> _userIds;
   @override
-  final String memberIdA;
-  @override
-  final String memberIdB;
+  List<String> get userIds {
+    if (_userIds is EqualUnmodifiableListView) return _userIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_userIds);
+  }
+
   @override
   final double lat;
   @override
   final double lng;
+  // BE 보강 필드 (클라이언트 detect 는 null/빈 list)
+  @override
+  final DateTime? startedAt;
+  @override
+  final int? durationMinutes;
+  @override
+  final String? placeName;
+  final List<String> _dotIds;
+  @override
+  @JsonKey()
+  List<String> get dotIds {
+    if (_dotIds is EqualUnmodifiableListView) return _dotIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_dotIds);
+  }
+
+  @override
+  final double? maxDistanceM;
 
   @override
   String toString() {
-    return 'MeetingEvent(memberIdA: $memberIdA, memberIdB: $memberIdB, lat: $lat, lng: $lng)';
+    return 'MeetingEvent(userIds: $userIds, lat: $lat, lng: $lng, startedAt: $startedAt, durationMinutes: $durationMinutes, placeName: $placeName, dotIds: $dotIds, maxDistanceM: $maxDistanceM)';
   }
 
   @override
@@ -620,16 +710,32 @@ class _$MeetingEventImpl implements _MeetingEvent {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$MeetingEventImpl &&
-            (identical(other.memberIdA, memberIdA) ||
-                other.memberIdA == memberIdA) &&
-            (identical(other.memberIdB, memberIdB) ||
-                other.memberIdB == memberIdB) &&
+            const DeepCollectionEquality().equals(other._userIds, _userIds) &&
             (identical(other.lat, lat) || other.lat == lat) &&
-            (identical(other.lng, lng) || other.lng == lng));
+            (identical(other.lng, lng) || other.lng == lng) &&
+            (identical(other.startedAt, startedAt) ||
+                other.startedAt == startedAt) &&
+            (identical(other.durationMinutes, durationMinutes) ||
+                other.durationMinutes == durationMinutes) &&
+            (identical(other.placeName, placeName) ||
+                other.placeName == placeName) &&
+            const DeepCollectionEquality().equals(other._dotIds, _dotIds) &&
+            (identical(other.maxDistanceM, maxDistanceM) ||
+                other.maxDistanceM == maxDistanceM));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, memberIdA, memberIdB, lat, lng);
+  int get hashCode => Object.hash(
+    runtimeType,
+    const DeepCollectionEquality().hash(_userIds),
+    lat,
+    lng,
+    startedAt,
+    durationMinutes,
+    placeName,
+    const DeepCollectionEquality().hash(_dotIds),
+    maxDistanceM,
+  );
 
   /// Create a copy of MeetingEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -642,20 +748,32 @@ class _$MeetingEventImpl implements _MeetingEvent {
 
 abstract class _MeetingEvent implements MeetingEvent {
   const factory _MeetingEvent({
-    required final String memberIdA,
-    required final String memberIdB,
+    required final List<String> userIds,
     required final double lat,
     required final double lng,
+    final DateTime? startedAt,
+    final int? durationMinutes,
+    final String? placeName,
+    final List<String> dotIds,
+    final double? maxDistanceM,
   }) = _$MeetingEventImpl;
 
   @override
-  String get memberIdA;
-  @override
-  String get memberIdB;
+  List<String> get userIds;
   @override
   double get lat;
   @override
-  double get lng;
+  double get lng; // BE 보강 필드 (클라이언트 detect 는 null/빈 list)
+  @override
+  DateTime? get startedAt;
+  @override
+  int? get durationMinutes;
+  @override
+  String? get placeName;
+  @override
+  List<String> get dotIds;
+  @override
+  double? get maxDistanceM;
 
   /// Create a copy of MeetingEvent
   /// with the given fields replaced by the non-null parameter values.

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/constants/typography.dart';
 import '../../../core/router/app_router.dart';
 import '../../map_animation/data/sprite_sheet_loader.dart';
 
@@ -80,7 +81,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: DottieColors.background,
+      // 로딩 PNG 가 흰 배경이므로 시스템 배경(웜톤)과 색이 안 부딪히도록 흰색 통일.
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -97,15 +99,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   : const SizedBox.shrink(),
             ),
             const SizedBox(height: 20),
-            Text(
-              'Dottie',
-              style: GoogleFonts.notoSansKr(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: DottieColors.primary,
-                letterSpacing: -1,
-              ),
-            ),
+            Text('Dottie', style: AppTypography.brandHero(fontSize: 36)),
             const SizedBox(height: 6),
             Text(
               '같은 하루, 다른 발자국',

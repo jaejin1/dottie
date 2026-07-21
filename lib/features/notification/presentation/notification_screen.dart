@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/constants/typography.dart';
+import '../../../core/utils/color_hex.dart';
 import '../../../core/constants/dimensions.dart';
+import '../../../shared/widgets/empty_state.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/utils/date_utils.dart';
 import '../domain/notification_model.dart';
 import 'notification_provider.dart';
@@ -18,16 +22,11 @@ class NotificationScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: DottieColors.background,
       appBar: AppBar(
-        backgroundColor: DottieColors.surface,
+        backgroundColor: DottieColors.background,
         elevation: 0,
-        title: Text(
-          '알림',
-          style: GoogleFonts.notoSansKr(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: DottieColors.textPrimary,
-          ),
-        ),
+        scrolledUnderElevation: 0,
+        title: Text('알림', style: AppTypography.tabHeader()),
+        centerTitle: false,
         actions: [
           TextButton(
             onPressed: () {
@@ -108,16 +107,12 @@ class NotificationScreen extends ConsumerWidget {
             child: notifications.isEmpty
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      const SizedBox(height: 200),
-                      Center(
-                        child: Text(
-                          '아직 알림이 없어요',
-                          style: GoogleFonts.notoSansKr(
-                            fontSize: 16,
-                            color: DottieColors.textSecondary,
-                          ),
-                        ),
+                    children: const [
+                      SizedBox(height: 80),
+                      EmptyState(
+                        icon: Icons.notifications_none_rounded,
+                        title: '아직 알림이 없어요',
+                        description: '댓글이나 새 dot 알림이 여기에 표시돼요',
                       ),
                     ],
                   )
@@ -147,13 +142,15 @@ class _NotificationTile extends ConsumerWidget {
     final initial =
         n.actorNickname.isNotEmpty ? n.actorNickname[0].toUpperCase() : '?';
 
-    final description = n.type == NotificationType.comment
-        ? '님이 dot에 댓글을 달았어요'
-        : '님이 dot에서 멘션했어요';
+    final description = switch (n.type) {
+      NotificationType.comment => '님이 회원님 dot에 댓글을 남겼어요',
+      NotificationType.mention => '님이 회원님을 멘션했어요',
+      NotificationType.dotCreated => '님이 오늘 dot을 남겼어요 · 회원님도 남겨보세요',
+    };
 
-    // 액터 정체성 색 (댓글/멘션 작성자) — BE `actor_color` 기반, 'blue' 폴백
+    // 액터 정체성 색 (댓글/멘션 작성자) — BE `actor_color_hex` 기반, default 폴백
     final actorColor =
-        characterColorMap[n.actorColorKey] ?? DottieColors.primary;
+        colorFromHex(n.actorColorHex, fallback: DottieColors.primary);
 
     return InkWell(
       onTap: () {
@@ -174,20 +171,31 @@ class _NotificationTile extends ConsumerWidget {
           return;
         }
 
+        final router = GoRouter.of(context);
         final dotId = n.dotId;
+
         if (dotId != null && dotId.isNotEmpty) {
-          // BE가 제공하는 dot_date 우선 사용 (정확). 누락 시 알림 생성 시각으로 폴백.
+          // shell 안의 nested route(`/rooms/:id/map`) 를 shell 밖(알림 화면)에서
+          // push 하면 navigator stack 이 어긋나 반복 네비게이션이 발생함
+          // (FCM 탭 핸들러와 동일한 문제). shell-external fullscreen alias 인
+          // `/dot-map` 을 사용 — 뒤로가기 시 알림 목록으로 자연 복귀.
+          // BE가 제공하는 dot_date 우선 (정확). 누락 시 알림 생성 시각으로 폴백.
           final dateStr =
               n.dotDate ?? DottieDateUtils.toDateString(n.createdAt);
           debugPrint(
-              '[Notification] → push /rooms/$roomId/map (date=$dateStr, dotId=$dotId)');
-          context.push(
-            '/rooms/$roomId/map',
-            extra: {'date': dateStr, 'dotId': dotId},
+              '[Notification] → push /dot-map (roomId=$roomId, date=$dateStr, dotId=$dotId)');
+          router.push(
+            AppRoutes.dotMap,
+            extra: {'roomId': roomId, 'date': dateStr, 'dotId': dotId},
           );
         } else {
+          // 룸 메인은 shell 내부 경로 — 알림 화면을 먼저 pop 한 뒤 다음 frame 에
+          // shell 위에서 push (shell 미mount 상태 push 로 인한 흰 화면 회피).
           debugPrint('[Notification] → push /rooms/$roomId (no dotId)');
-          context.push('/rooms/$roomId');
+          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            router.push('/rooms/$roomId');
+          });
         }
       },
       child: Container(

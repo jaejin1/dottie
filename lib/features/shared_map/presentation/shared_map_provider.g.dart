@@ -6,7 +6,7 @@ part of 'shared_map_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$sharedMapNotifierHash() => r'3f5ed1b1903e5bf8a577fb154eb12f77aa1c7dd8';
+String _$sharedMapNotifierHash() => r'7d3c76d6b319ff8277e01a5fde72f7da1baa6b73';
 
 /// Copied from Dart SDK
 class _SystemHash {

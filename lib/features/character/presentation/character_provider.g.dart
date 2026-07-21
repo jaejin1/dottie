@@ -6,9 +6,14 @@ part of 'character_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$characterNotifierHash() => r'f9710af1ffc45fcb64c1a7740c694fcc27a3a42f';
+String _$characterNotifierHash() => r'427bd2c39bb28bbfaaf18766fe232569f31243ce';
 
-/// See also [CharacterNotifier].
+/// 캐릭터 관련 사용자 액션. 현재는 닉네임 변경 전용.
+///
+/// 캐릭터 외형(피부/머리/옷 등)은 `paperdollProvider`가 담당한다.
+/// 이 notifier는 외형과 무관한 사용자 정보 변경에만 쓰인다.
+///
+/// Copied from [CharacterNotifier].
 @ProviderFor(CharacterNotifier)
 final characterNotifierProvider =
     AutoDisposeNotifierProvider<CharacterNotifier, CharacterConfig>.internal(

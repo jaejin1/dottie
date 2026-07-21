@@ -46,3 +46,7 @@ app.*.map.json
 
 # Claude Code 작업 메모 (개인 플래닝)
 .claude/plans/
+
+# 로컬 빌드 시크릿 (API 키, 기기 ID)
+.env
+.env.local

@@ -55,10 +55,16 @@ class PaperdollManifestLoader {
         if (!isValidPartId(id) || asset == null || asset.isEmpty) continue;
         // 에셋 경로 sanity — 'assets/character/'로 시작해야 함
         if (!asset.startsWith('assets/character/')) continue;
+        final overlay = entry['head_overlay'] as String?;
+        // head_overlay도 동일한 경로 규약 적용 (외부 path 차단)
+        final safeOverlay = (overlay != null && overlay.startsWith('assets/character/'))
+            ? overlay
+            : null;
         items.add(PartItem(
           id: id!,
           name: (entry['name'] as String?) ?? id,
           assetPath: asset,
+          headOverlay: safeOverlay,
           tintable: (entry['tintable'] as bool?) ?? false,
           expressions: (entry['expressions'] as List?)
                   ?.whereType<String>()

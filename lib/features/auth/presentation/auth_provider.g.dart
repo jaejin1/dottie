@@ -40,7 +40,7 @@ final authStateChangesProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateChangesRef = AutoDisposeStreamProviderRef<User?>;
-String _$currentUserHash() => r'a5bcb438e190bbc8fe821cc39d43e5c28ad9997c';
+String _$currentUserHash() => r'23a5b5ccb41bcb80e716aa39d3646d17c21efe54';
 
 /// See also [currentUser].
 @ProviderFor(currentUser)
@@ -74,7 +74,7 @@ final isAuthenticatedProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsAuthenticatedRef = AutoDisposeProviderRef<bool>;
-String _$currentDottieUserHash() => r'21dad60944579cdb6e68729b0d6ab15db2cbc499';
+String _$currentDottieUserHash() => r'a87c9a52f36b090392fc2fc5915d118b15835dab';
 
 /// BE /users/me 로부터 현재 사용자 정보를 가져옴. uid는 BE UUID(room.ownerId와 비교 가능).
 ///
@@ -93,16 +93,15 @@ final currentDottieUserProvider = FutureProvider<DottieUser?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentDottieUserRef = FutureProviderRef<DottieUser?>;
-String _$currentUserColorHash() => r'864ed14a40c69cde82ce9ea0cd7870f8b9781d27';
+String _$currentUserColorHash() => r'40e78a50ece8c2bf7c4fdc4ab632e6149b7a9fa7';
 
 /// 현재 사용자의 정체성 색.
 ///
-/// 우선순위: `paperdollProvider.colorKey` > `currentDottieUser.character.colorKey`
+/// 우선순위: `paperdollProvider.colorHex` > `currentDottieUser.character.colorHex`
 /// (paperdollProvider가 picker 즉시 반영을 위한 단일 source of truth — 저장 후
 /// `currentDottieUser` 재요청 없이 색이 즉시 갱신됨).
 ///
-/// 5색 프리셋(`blue/mint/coral/lavender/yellow`) 기준. 모두 미로드/잘못된 값이면
-/// `DottieColors.primary` 폴백.
+/// 자유 hex 형식. 잘못된 값이면 default(`#7EB8F7`)로 폴백.
 ///
 /// Copied from [currentUserColor].
 @ProviderFor(currentUserColor)
@@ -119,7 +118,7 @@ final currentUserColorProvider = AutoDisposeProvider<Color>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentUserColorRef = AutoDisposeProviderRef<Color>;
-String _$authNotifierHash() => r'45243020bbe4c9aa6431c1e2c9f849cc8c64f3e8';
+String _$authNotifierHash() => r'd600ed9f4cd17afa03abc6a0aa7a57553b841ef5';
 
 /// See also [AuthNotifier].
 @ProviderFor(AuthNotifier)

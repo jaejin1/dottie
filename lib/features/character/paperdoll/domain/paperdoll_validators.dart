@@ -40,13 +40,3 @@ String sanitizeFaceExpression(String? raw, List<String> whitelist) {
   return raw;
 }
 
-/// 사용자 정체성 색 키 검증 — 5색 프리셋 화이트리스트.
-String sanitizeColorKey(
-  String? raw,
-  List<String> whitelist, {
-  required String defaultKey,
-}) {
-  if (raw == null || raw.isEmpty) return defaultKey;
-  if (!whitelist.contains(raw)) return defaultKey;
-  return raw;
-}

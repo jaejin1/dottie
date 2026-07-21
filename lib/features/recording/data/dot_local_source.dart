@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -68,9 +70,12 @@ class DotLocalSource {
         placeName: Value(dot.placeName),
         placeCategory: Value(dot.placeCategory),
         photoUrl: Value(dot.photoUrl),
+        photoThumbUrl: Value(dot.photoThumbUrl),
+        photoPreviewUrl: Value(dot.photoPreviewUrl),
         memo: Value(dot.memo),
         emotion: Value(dot.emotion),
         dayLogId: dot.dayLogId,
+        tagsJson: Value(jsonEncode(dot.tags)),
         synced: const Value(true),
       ));
     }
@@ -87,9 +92,12 @@ class DotLocalSource {
       placeName: Value(dot.placeName),
       placeCategory: Value(dot.placeCategory),
       photoUrl: Value(dot.photoUrl),
+      photoThumbUrl: Value(dot.photoThumbUrl),
+      photoPreviewUrl: Value(dot.photoPreviewUrl),
       memo: Value(dot.memo),
       emotion: Value(dot.emotion),
       dayLogId: dot.dayLogId,
+      tagsJson: Value(jsonEncode(dot.tags)),
       synced: Value(dot.synced),
     ));
   }
@@ -97,14 +105,32 @@ class DotLocalSource {
   Future<List<DotTableData>> getDotsByDayLog(String dayLogId) =>
       _db.getDotsByDayLog(dayLogId);
 
+  /// 단말에 저장된 모든 dot — 태그 검색 등 글로벌 조회.
+  /// **주의**: user 분리 안 됨. 멀티계정 단말에서 사용 시 [getDotsForUser] 권장.
+  Future<List<DotTableData>> getAllDots() => _db.getAllDots();
+
+  /// userId 로 필터링된 dot.
+  Future<List<DotTableData>> getDotsForUser(String userId) =>
+      _db.getDotsForUser(userId);
+
+  /// user 의 가장 최신 dot timestamp. 없으면 null. rate-limit 게이트용.
+  Future<DateTime?> getLastDotTimestampForUser(String userId) =>
+      _db.getLastDotTimestampForUser(userId);
+
   Future<List<DotTableData>> getUnsyncedDots() => _db.getUnsyncedDots();
 
   Future<void> markDotSynced(String dotId) => _db.markDotSynced(dotId);
+
+  /// client dot id → server id 치환 (+ todo 체크인 참조 갱신).
+  Future<void> remapDotId(String oldId, String newId) =>
+      _db.remapDotId(oldId, newId);
 
   Future<void> deleteDayLog(String id) async {
     await _db.deleteDotsByDayLog(id);
     await _db.deleteDayLog(id);
   }
+
+  Future<void> deleteDotById(String id) => _db.deleteDotById(id);
 
   /// 서버 dayLogId로 로컬 daylog가 없으면 생성 (upsert)
   Future<void> ensureDayLog(String id, DateTime date, String userId) =>
@@ -130,11 +156,25 @@ class DotLocalSource {
         placeName: row.placeName,
         placeCategory: row.placeCategory,
         photoUrl: row.photoUrl,
+        photoThumbUrl: row.photoThumbUrl,
+        photoPreviewUrl: row.photoPreviewUrl,
         memo: row.memo,
         emotion: row.emotion,
         dayLogId: row.dayLogId,
+        tags: _decodeTags(row.tagsJson),
         synced: row.synced,
       );
+
+  static List<String> _decodeTags(String? raw) {
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is List) {
+        return parsed.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
 
   // DayLogTableData → DayLog 변환
   DayLog dayLogFromRow(DayLogTableData row, List<Dot> dots) => DayLog(

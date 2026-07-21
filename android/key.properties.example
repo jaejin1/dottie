@@ -1,0 +1,15 @@
+# 릴리스 서명 키 설정 예시.
+# 이 파일을 복사해 android/key.properties 로 만들고 실제 값을 채운다.
+# key.properties 와 *.jks 는 .gitignore 됨 — 절대 커밋하지 말 것.
+#
+# 1) 키스토어 생성 (한 번만, 비밀번호는 안전한 곳에 보관):
+#    keytool -genkey -v -keystore ~/dottie-upload-keystore.jks \
+#      -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# 2) 아래 값 채우기:
+
+storePassword=<키스토어 비밀번호>
+keyPassword=<키 비밀번호>
+keyAlias=upload
+# 키스토어 절대경로 (또는 android/ 기준 상대경로)
+storeFile=/Users/<you>/dottie-upload-keystore.jks

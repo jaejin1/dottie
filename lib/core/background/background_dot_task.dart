@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../database/app_database.dart';
+import '../storage/secure_storage.dart';
 
 const _prefsApiUrl = 'api_url';
 const _prefsBeUserId = 'be_user_id';
@@ -85,10 +85,8 @@ Future<void> captureAutoDot({required String reason}) async {
   }
 
   // 2) 서버 업로드 best-effort (오프라인이거나 토큰 만료면 다음 sync에서 일괄 처리)
-  const storage = FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
-  final token = await storage.read(key: 'firebase_id_token');
+  // 메인 isolate 의 토큰 저장과 동일한 하드닝 옵션 사용(first_unlock_this_device).
+  final token = await kSecureStorage.read(key: 'firebase_id_token');
   if (token == null || token.isEmpty) return;
 
   final apiUrl = prefs.getString(_prefsApiUrl) ?? 'http://localhost:8080/v1';

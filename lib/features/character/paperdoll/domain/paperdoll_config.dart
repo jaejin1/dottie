@@ -1,4 +1,4 @@
-import '../../../../core/constants/colors.dart';
+import '../../../../core/utils/color_hex.dart';
 import 'paperdoll_parts.dart';
 import 'paperdoll_validators.dart';
 
@@ -7,24 +7,24 @@ import 'paperdoll_validators.dart';
 /// 백엔드 직렬화 키 (snake_case):
 /// - skin / hair / hair_color / face / face_expression
 /// - top / top_color / bottom / bottom_color / shoes / accessory
-/// - color  ← 정체성 색 (5색 프리셋, 지도/댓글 등에서 사용자 식별 색)
+/// - color_hex  ← 정체성 색 (자유 hex, 지도/댓글 등에서 사용자 식별 색)
 ///
 /// BE는 12개 필드 모두 필수 (부분 업데이트 불가, 색상 null 불가).
 /// `schema_version`은 GET 응답에만 포함되며 PUT 요청에 보내면 거절됨.
 class PaperdollConfig {
   const PaperdollConfig({
-    this.skinId = 'skin_01',
-    this.hairId = 'hair_basic',
+    this.skinId = 'skin_light',
+    this.hairId = 'hair_child_wavy',
     this.hairColor = '#3a2a1f',
     this.faceId = 'face_round',
     this.faceExpression = kFaceExpressionDefault,
-    this.topId = 'top_tee',
+    this.topId = 'top_shirt_white',
     this.topColor = '#ffffff',
-    this.bottomId = 'bottom_jeans',
+    this.bottomId = 'bottom_pants_blue',
     this.bottomColor = '#2a3a5f',
     this.shoesId = 'shoes_sneaker',
     this.accessoryId = 'none',
-    this.colorKey = kCharacterColorKeyDefault,
+    this.colorHex = kCharacterColorHexDefault,
   });
 
   final String skinId;
@@ -39,9 +39,10 @@ class PaperdollConfig {
   final String shoesId;
   final String accessoryId;
 
-  /// 정체성 색 (지도 trail/마커, 댓글 아바타 등 식별용).
-  /// `kCharacterColorKeys` 중 하나. 잘못된 값은 default('blue')로 치환.
-  final String colorKey;
+  /// 정체성 색 hex (지도 trail/마커, 댓글 아바타 등 식별용).
+  /// `#RRGGBB` 형식. 잘못된 값은 default(`#7EB8F7`)로 치환.
+  /// BE 가독성 제약(S>=0.25, V 0.30~0.95)을 만족해야 PUT 시 통과.
+  final String colorHex;
 
   static const PaperdollConfig defaults = PaperdollConfig();
 
@@ -72,10 +73,9 @@ class PaperdollConfig {
           defaultId: defaults.shoesId),
       accessoryId: sanitizePartId(json['accessory'] as String?,
           defaultId: defaults.accessoryId),
-      colorKey: sanitizeColorKey(
-        json['color_key'] as String?,
-        kCharacterColorKeys,
-        defaultKey: defaults.colorKey,
+      colorHex: sanitizeColorHex(
+        json['color_hex'] as String?,
+        defaultHex: defaults.colorHex,
       ),
     );
   }
@@ -94,7 +94,7 @@ class PaperdollConfig {
         'bottom_color': bottomColor,
         'shoes': shoesId,
         'accessory': accessoryId,
-        'color_key': colorKey,
+        'color_hex': colorHex,
       };
 
   /// 슬롯의 ID를 변경한 사본.
@@ -158,7 +158,7 @@ class PaperdollConfig {
     String? bottomColor,
     String? shoesId,
     String? accessoryId,
-    String? colorKey,
+    String? colorHex,
   }) {
     return PaperdollConfig(
       skinId: skinId ?? this.skinId,
@@ -172,7 +172,7 @@ class PaperdollConfig {
       bottomColor: bottomColor ?? this.bottomColor,
       shoesId: shoesId ?? this.shoesId,
       accessoryId: accessoryId ?? this.accessoryId,
-      colorKey: colorKey ?? this.colorKey,
+      colorHex: colorHex ?? this.colorHex,
     );
   }
 
@@ -192,7 +192,7 @@ class PaperdollConfig {
           bottomColor == other.bottomColor &&
           shoesId == other.shoesId &&
           accessoryId == other.accessoryId &&
-          colorKey == other.colorKey;
+          colorHex == other.colorHex;
 
   @override
   int get hashCode => Object.hash(
@@ -207,6 +207,6 @@ class PaperdollConfig {
         bottomColor,
         shoesId,
         accessoryId,
-        colorKey,
+        colorHex,
       );
 }

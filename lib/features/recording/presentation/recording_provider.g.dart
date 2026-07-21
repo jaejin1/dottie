@@ -6,7 +6,7 @@ part of 'recording_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$todayDayLogHash() => r'd9f33524f92a886cca165ac15c560eb62e6375b7';
+String _$todayDayLogHash() => r'cb294e76bc26c6af7054ea5f7a7fb8a63eb632e9';
 
 /// See also [todayDayLog].
 @ProviderFor(todayDayLog)
@@ -23,7 +23,7 @@ final todayDayLogProvider = AutoDisposeFutureProvider<DayLog?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TodayDayLogRef = AutoDisposeFutureProviderRef<DayLog?>;
-String _$allDayLogsHash() => r'81cca795b52ac24dc2bc1662e8ceb5c72906f5a2';
+String _$allDayLogsHash() => r'1773e87a59a3e0366e27e057f506c081847a1d7b';
 
 /// See also [allDayLogs].
 @ProviderFor(allDayLogs)
@@ -40,7 +40,7 @@ final allDayLogsProvider = AutoDisposeFutureProvider<List<DayLog>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllDayLogsRef = AutoDisposeFutureProviderRef<List<DayLog>>;
-String _$activeRecordingHash() => r'69dd8572780f9a866f3b4f4894f796d50b2a4afe';
+String _$activeRecordingHash() => r'e95dc37e61afacb22fb12fc26916f082f77816f1';
 
 /// See also [ActiveRecording].
 @ProviderFor(ActiveRecording)

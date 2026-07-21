@@ -11,9 +11,17 @@ final commentRemoteSourceProvider = Provider<CommentRemoteSource>((ref) {
 class CommentRemoteSource {
   final _dio = ApiClient.instance;
 
-  Future<List<DotComment>> getComments(String dotId) async {
+  /// 여러 룸의 댓글을 한 번에 조회 — `room_ids` 쿼리 파라미터 필수 (콤마 구분).
+  /// 각 댓글에 `room_ids` 배열 포함. 권한 없거나 dot 이 룸에 미공유면 403.
+  Future<List<DotComment>> getComments(
+    String dotId, {
+    required Set<String> roomIds,
+  }) async {
     try {
-      final res = await _dio.get(ApiEndpoints.dotComments(dotId));
+      final res = await _dio.get(
+        ApiEndpoints.dotComments(dotId),
+        queryParameters: {'room_ids': roomIds.join(',')},
+      );
       final list = (res.data['data'] ?? res.data) as List;
       return list
           .map((e) => DotComment.fromJson(e as Map<String, dynamic>))
@@ -24,15 +32,18 @@ class CommentRemoteSource {
     }
   }
 
+  /// 댓글 작성 — body 에 `room_ids` 배열 필수. 여러 룸에 동시 귀속 가능.
+  /// 멘션 대상이 룸 멤버 아니면 BE 가 자동 skip (에러 없음).
   Future<DotComment> postComment(
     String dotId, {
+    required List<String> roomIds,
     required String content,
     required List<MentionSpan> mentions,
   }) async {
-    // 서버 에러는 그대로 propagate (비즈니스 오류 처리를 위해)
     final res = await _dio.post(
       ApiEndpoints.dotComments(dotId),
       data: {
+        'room_ids': roomIds,
         'content': content,
         'mentions': mentions.map((m) => m.toJson()).toList(),
       },

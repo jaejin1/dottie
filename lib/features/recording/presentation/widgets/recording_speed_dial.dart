@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import '../../../../core/constants/colors.dart';
+import '../../../onboarding/domain/onboarding_step.dart';
+import '../../../onboarding/presentation/onboarding_tour_provider.dart';
+import '../../../onboarding/presentation/tour_content.dart';
 import '../../../settings/domain/auto_record_settings.dart';
 import '../../../settings/presentation/auto_record_chip.dart';
 import '../../../settings/presentation/auto_record_provider.dart';
@@ -22,7 +26,91 @@ class RecordingSpeedDial extends ConsumerStatefulWidget {
 
 class _RecordingSpeedDialState extends ConsumerState<RecordingSpeedDial>
     with SingleTickerProviderStateMixin {
+  final _fabKey = GlobalKey();
   bool _isExpanded = false;
+  bool _tourShown = false;
+  TutorialCoachMark? _coachMark;
+  ProviderSubscription<OnboardingStep>? _tourSub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowFabTour());
+    _tourSub = ref.listenManual(onboardingTourProvider, (prev, next) {
+      // Reset when tour restarts
+      if (next == OnboardingStep.idle || next == OnboardingStep.dotFab) {
+        _tourShown = false;
+      }
+      if (next == OnboardingStep.dotFab && !_tourShown) {
+        _tourShown = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showFabCoachMark();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tourSub?.close();
+    _coachMark?.finish();
+    super.dispose();
+  }
+
+  void _maybeShowFabTour() {
+    if (!mounted || _tourShown) return;
+    if (ref.read(onboardingTourProvider) == OnboardingStep.dotFab) {
+      _tourShown = true;
+      _showFabCoachMark();
+    }
+  }
+
+  void _showFabCoachMark() {
+    _coachMark = TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: 'dotFab',
+          keyTarget: _fabKey,
+          shape: ShapeLightFocus.Circle,
+          radius: 40,
+          paddingFocus: 12,
+          enableOverlayTab: false,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              builder: (_, controller) => TourContent(
+                message: '지금 있는 곳을\ndot으로 기록해보세요',
+                description: '+ 버튼을 탭하면 현재 위치가 기록돼요',
+                actionLabel: '기록하기',
+                onAction: () => controller.next(),
+                stepCurrent: 1,
+                stepTotal: 5,
+                onSkip: controller.skip,
+              ),
+            ),
+          ],
+        ),
+      ],
+      colorShadow: const Color(0xFF0A0908),
+      opacityShadow: 0.78,
+      focusAnimationDuration: const Duration(milliseconds: 350),
+      pulseAnimationDuration: const Duration(milliseconds: 900),
+      unFocusAnimationDuration: const Duration(milliseconds: 200),
+      skipWidget: tourSkipIcon,
+      onFinish: () {
+        if (!mounted) return;
+        if (ref.read(onboardingTourProvider) != OnboardingStep.dotFab) return;
+        ref.read(onboardingTourProvider.notifier).advance().then((_) {
+          if (mounted) _openDotInputForTour();
+        });
+      },
+      onSkip: () {
+        ref.read(onboardingTourProvider.notifier).skip();
+        return true;
+      },
+    );
+    _coachMark!.show(context: context, rootOverlay: true);
+  }
 
   void _toggle() {
     HapticFeedback.lightImpact();
@@ -33,11 +121,30 @@ class _RecordingSpeedDialState extends ConsumerState<RecordingSpeedDial>
     if (_isExpanded) setState(() => _isExpanded = false);
   }
 
+  /// 투어 step 1 진행 중 sheet 열기 — first_dot_banner skip
+  Future<void> _openDotInputForTour() async {
+    if (!mounted) return;
+    await DotInputSheet.show(context);
+    // sheet 닫힘: dotSheet → mapHint (캘린더 아이콘 안내)
+    if (mounted &&
+        ref.read(onboardingTourProvider) == OnboardingStep.dotSheet) {
+      await ref.read(onboardingTourProvider.notifier).advance();
+    }
+  }
+
   Future<void> _openDotInput() async {
     _collapse();
+
     final isFirstDot = await DotInputSheet.show(context);
+
     if (isFirstDot && mounted) {
-      await showFirstDotFlow(context, ref);
+      final currentStep = ref.read(onboardingTourProvider);
+      final tourActive =
+          currentStep != OnboardingStep.idle &&
+          currentStep != OnboardingStep.done;
+      if (!tourActive) {
+        await showFirstDotFlow(context, ref);
+      }
     }
   }
 
@@ -89,6 +196,7 @@ class _RecordingSpeedDialState extends ConsumerState<RecordingSpeedDial>
                 width: 64,
                 height: 64,
                 child: FloatingActionButton(
+                  key: _fabKey,
                   heroTag: 'record_main_fab',
                   onPressed: isLoading
                       ? null

@@ -3,182 +3,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/dimensions.dart';
+import '../../../../core/constants/typography.dart';
 import '../../../../core/router/app_router.dart';
 import 'auth_provider.dart';
 
-class OnboardingScreen extends StatefulWidget {
+// 로그인 전 워크스루는 제거 — 사용법은 로그인 후 앱 내 투어가 안내한다.
+// /onboarding 경로 호환을 위해 LoginScreen 별칭만 유지.
+
+class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pageController = PageController();
-  int _currentPage = 0;
-
-  static const _pages = [
-    _OnboardingPage(
-      emoji: '🔵',
-      title: '하루를 점으로 기록해요',
-      subtitle: '하루 동안 이동한 곳마다 dot을 찍어\n나만의 하루 지도를 만들어요',
-    ),
-    _OnboardingPage(
-      emoji: '🗺️',
-      title: '캐릭터가 하루를 되짚어요',
-      subtitle: '귀여운 캐릭터가 내 발자국을 따라\n지도 위를 움직여요',
-    ),
-    _OnboardingPage(
-      emoji: '💕',
-      title: '친구와 같은 지도 위에서',
-      subtitle: '같은 날 기록을 합치면\n우리의 하루가 한 지도에 펼쳐져요',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DottieColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 건너뛰기
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(Dimensions.md),
-                child: TextButton(
-                  onPressed: () => context.go(AppRoutes.login),
-                  child: const Text('건너뛰기',
-                      style: TextStyle(color: DottieColors.textSecondary)),
-                ),
-              ),
-            ),
-
-            // 페이지
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                itemBuilder: (_, i) => _pages[i],
-              ),
-            ),
-
-            // 인디케이터
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _pages.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == i ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _currentPage == i
-                        ? DottieColors.primary
-                        : DottieColors.textHint,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: Dimensions.lg),
-
-            // 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Dimensions.md),
-              child: _currentPage < _pages.length - 1
-                  ? FilledButton(
-                      onPressed: () => _pageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: DottieColors.primary,
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.radiusMd),
-                        ),
-                      ),
-                      child: const Text('다음',
-                          style: TextStyle(fontSize: 16)),
-                    )
-                  : FilledButton(
-                      onPressed: () => context.go(AppRoutes.login),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: DottieColors.primary,
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.radiusMd),
-                        ),
-                      ),
-                      child: const Text('시작하기',
-                          style: TextStyle(fontSize: 16)),
-                    ),
-            ),
-            const SizedBox(height: Dimensions.lg),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String emoji;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Dimensions.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 96)),
-          const SizedBox(height: Dimensions.xl),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: DottieColors.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Dimensions.md),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 15,
-              color: DottieColors.textSecondary,
-              height: 1.6,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const LoginScreen();
 }
 
 // ─── 로그인 화면 ──────────────────────────────────────────────
@@ -199,7 +38,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final success = await loginFn();
       if (success && mounted) {
-        context.go(AppRoutes.home);
+        // 필수 약관 미동의 유저는 동의 게이트로 (라우터 redirect 가 2차 방어).
+        final user =
+            await ref.read(currentDottieUserProvider.future);
+        if (!mounted) return;
+        context.go(user?.consentRequired == true
+            ? AppRoutes.consent
+            : AppRoutes.home);
       } else if (mounted) {
         final authState = ref.read(authNotifierProvider);
         if (authState is AsyncError) {
@@ -242,18 +87,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               const Spacer(),
-              const Text('🔵', style: TextStyle(fontSize: 80)),
-              const SizedBox(height: Dimensions.md),
-              const Text('Dottie',
-                  style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: DottieColors.primary,
-                      letterSpacing: -1)),
-              const SizedBox(height: Dimensions.sm),
-              const Text('같은 하루, 다른 발자국',
-                  style: TextStyle(
-                      fontSize: 15, color: DottieColors.textSecondary)),
+              // 브랜드 마크 — dot 자취 (발자국 컨셉)
+              const _DotTrailMark(size: 140),
+              const SizedBox(height: Dimensions.lg),
+              Text('Dottie', style: AppTypography.brandHero(fontSize: 38)),
+              const SizedBox(height: Dimensions.xs),
+              Text(
+                '같은 하루, 다른 발자국',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 14,
+                  color: DottieColors.textSecondary,
+                  letterSpacing: -0.2,
+                ),
+              ),
               const Spacer(),
 
               if (_isLoading)
@@ -262,11 +108,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: CircularProgressIndicator(),
                 ),
 
+              // 카카오 — 공식 디자인 가이드 준수 커스텀 버튼.
+              // 컨테이너 #FEE500 / radius 12px, 공식 말풍선 심볼(#000),
+              // 라벨 #000 85% "카카오 로그인".
               _SocialLoginButton(
                 color: const Color(0xFFFEE500),
-                textColor: const Color(0xFF191919),
-                emoji: '💬',
-                label: '카카오로 시작하기',
+                textColor: const Color(0xD9000000), // #000 85%
+                radius: 12,
+                icon: Image.asset(
+                  'assets/images/kakao_symbol.png',
+                  width: 18,
+                  height: 18,
+                ),
+                label: '카카오 로그인',
                 onTap: _isLoading ? null : () => _login(auth.loginWithKakao),
               ),
               const SizedBox(height: Dimensions.sm),
@@ -274,19 +128,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               _SocialLoginButton(
                 color: Colors.black,
                 textColor: Colors.white,
-                emoji: '🍎',
-                label: 'Apple로 시작하기',
+                radius: 12,
+                icon: const Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.apple, size: 24, color: Colors.white),
+                ),
+                label: 'Apple로 로그인',
                 onTap: _isLoading ? null : () => _login(auth.loginWithApple),
               ),
               const SizedBox(height: Dimensions.sm),
 
+              // Google — 공식 브랜드 가이드 스타일 (흰 배경 / #747775 테두리 /
+              // #1f1f1f 텍스트 / 공식 G 로고). 프레임은 카카오·애플과 동일 폭·높이.
               _SocialLoginButton(
-                color: DottieColors.surface,
-                textColor: DottieColors.textPrimary,
-                emoji: '🌐',
-                label: 'Google로 시작하기',
+                color: Colors.white,
+                textColor: const Color(0xFF1F1F1F),
+                // 공식 Google 'G' 로고 PNG. 파일이 없으면 텍스트 G 로 폴백.
+                icon: Image.asset(
+                  'assets/images/google_g.png',
+                  width: 20,
+                  height: 20,
+                  errorBuilder: (_, __, ___) => const _GoogleG(size: 20),
+                ),
+                // Google 가이드: 승인된 문구만 허용 ("Google 계정으로 로그인"
+                // /가입/계속). 임의 축약("Google 로그인") 불가.
+                label: 'Google 계정으로 로그인',
+                radius: 12,
                 onTap: _isLoading ? null : () => _login(auth.loginWithGoogle),
-                border: Border.all(color: DottieColors.textHint),
+                border: Border.all(color: const Color(0xFF747775)),
               ),
 
               const SizedBox(height: Dimensions.xl),
@@ -302,45 +171,140 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
+/// dot 자취 브랜드 마크 — 작은 점들이 곡선을 그리며 메인 dot으로 이어진다.
+/// "하루 동안의 이동을 점으로 기록"하는 앱 컨셉을 시각화.
+class _DotTrailMark extends StatelessWidget {
+  const _DotTrailMark({required this.size});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _DotTrailPainter()),
+    );
+  }
+}
+
+class _DotTrailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // 메인 dot — 우하단, 은은한 glow
+    final mainCenter = Offset(w * 0.62, h * 0.68);
+    final mainRadius = w * 0.20;
+
+    canvas.drawCircle(
+      mainCenter,
+      mainRadius * 1.55,
+      Paint()
+        ..color = DottieColors.primary.withValues(alpha: 0.14)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+    canvas.drawCircle(
+      mainCenter,
+      mainRadius,
+      Paint()..color = DottieColors.primary,
+    );
+    // 하이라이트 — 입체감
+    canvas.drawCircle(
+      Offset(mainCenter.dx - mainRadius * 0.3,
+          mainCenter.dy - mainRadius * 0.35),
+      mainRadius * 0.32,
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
+
+    // 자취 dot들 — 좌상단에서 곡선을 그리며 메인 dot으로
+    final trail = [
+      (Offset(w * 0.14, h * 0.16), w * 0.045, 0.30),
+      (Offset(w * 0.30, h * 0.24), w * 0.055, 0.45),
+      (Offset(w * 0.26, h * 0.46), w * 0.065, 0.60),
+      (Offset(w * 0.42, h * 0.52), w * 0.080, 0.80),
+    ];
+    for (final (center, radius, opacity) in trail) {
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()..color = DottieColors.primary.withValues(alpha: opacity),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Google 브랜드 컬러 'G' — 로고 에셋 없이 텍스트로 표현.
+class _GoogleG extends StatelessWidget {
+  const _GoogleG({required this.size});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'G',
+      style: TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF4285F4),
+        height: 1,
+      ),
+    );
+  }
+}
+
 class _SocialLoginButton extends StatelessWidget {
   const _SocialLoginButton({
     required this.color,
     required this.textColor,
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.onTap,
     this.border,
+    this.radius = Dimensions.radiusMd,
   });
 
   final Color color;
   final Color textColor;
-  final String emoji;
+  final Widget icon;
   final String label;
   final VoidCallback? onTap;
   final BoxBorder? border;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(Dimensions.radiusMd),
-          border: border,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: Dimensions.sm),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: textColor)),
-          ],
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(radius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: border,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 10),
+              Text(
+                label,
+                // 카카오 가이드: 레이블 자간 변경 금지 → letterSpacing 미적용.
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

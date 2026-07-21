@@ -2,57 +2,29 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../auth/domain/user_model.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 part 'character_provider.g.dart';
 
+/// 캐릭터 관련 사용자 액션. 현재는 닉네임 변경 전용.
+///
+/// 캐릭터 외형(피부/머리/옷 등)은 `paperdollProvider`가 담당한다.
+/// 이 notifier는 외형과 무관한 사용자 정보 변경에만 쓰인다.
 @riverpod
 class CharacterNotifier extends _$CharacterNotifier {
   @override
-  CharacterConfig build() {
-    _loadFromServer();
-    return const CharacterConfig();
-  }
+  CharacterConfig build() => const CharacterConfig();
 
-  Future<void> _loadFromServer() async {
-    try {
-      final res = await ApiClient.instance.get(ApiEndpoints.usersMe);
-      final data = res.data['data'] as Map<String, dynamic>;
-      final config = data['character_config'] as Map<String, dynamic>?;
-      if (config != null) {
-        state = CharacterConfig(
-          colorKey: config['color'] as String? ?? state.colorKey,
-          accessoryKey: config['accessory'] as String? ?? state.accessoryKey,
-          expressionKey: config['expression'] as String? ?? state.expressionKey,
-        );
-      }
-    } catch (_) {}
-  }
-
-  void setColor(String colorKey) {
-    state = state.copyWith(colorKey: colorKey);
-  }
-
-  void setAccessory(String accessoryKey) {
-    state = state.copyWith(accessoryKey: accessoryKey);
-  }
-
-  void setExpression(String expressionKey) {
-    state = state.copyWith(expressionKey: expressionKey);
-  }
-
-  Future<bool> save() async {
-    try {
-      await ApiClient.instance.put(
-        ApiEndpoints.usersMeCharacter,
-        data: {
-          'color': state.colorKey,
-          'accessory': state.accessoryKey,
-          'expression': state.expressionKey,
-        },
-      );
-      return true;
-    } catch (_) {
-      return false;
+  /// 닉네임을 서버에 저장하고 currentDottieUser 캐시를 무효화한다.
+  Future<void> updateNickname(String nickname) async {
+    final trimmed = nickname.trim();
+    if (trimmed.isEmpty || trimmed.runes.length > 30) {
+      throw ArgumentError('닉네임은 1자 이상 30자 이하여야 합니다');
     }
+    await ApiClient.instance.put(
+      ApiEndpoints.usersMe,
+      data: {'nickname': trimmed},
+    );
+    ref.invalidate(currentDottieUserProvider);
   }
 }

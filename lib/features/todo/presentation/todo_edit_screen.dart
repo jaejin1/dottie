@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/dimensions.dart';
+import '../../../core/media/media_upload_service.dart';
 import '../../../shared/utils/error_messages.dart';
 import '../../../shared/widgets/dottie_date_picker.dart';
 import '../domain/todo_list_model.dart';
@@ -33,6 +35,10 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
   DateTime _endDate = DateTime.now().add(const Duration(days: 2));
 
   final Set<String> _selectedTags = {};
+  String _visibility = 'private';
+  bool get _isPublic => _visibility == 'public';
+  String? _coverImageUrl;
+  bool _uploadingCover = false;
   bool _initialized = false;
   bool _saving = false;
 
@@ -86,6 +92,8 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
     _selectedTags
       ..clear()
       ..addAll(list.tags);
+    _visibility = list.visibility;
+    _coverImageUrl = list.coverImageUrl;
   }
 
   @override
@@ -223,6 +231,25 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
           ),
           const SizedBox(height: Dimensions.lg),
 
+          // 커버 사진
+          const _SectionTitle('커버 사진 (선택)'),
+          const SizedBox(height: 4),
+          Text(
+            '둘러보기 카드 배경으로 보여요',
+            style: TextStyle(
+              fontSize: 11,
+              color: DottieColors.textPrimary.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: Dimensions.sm),
+          _CoverPicker(
+            imageUrl: _coverImageUrl,
+            uploading: _uploadingCover,
+            onPick: _pickAndUploadCover,
+            onRemove: () => setState(() => _coverImageUrl = null),
+          ),
+          const SizedBox(height: Dimensions.lg),
+
           // 태그
           const _SectionTitle('태그 (최대 5개)'),
           const SizedBox(height: Dimensions.sm),
@@ -272,6 +299,26 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
             ),
             const SizedBox(height: Dimensions.md),
           ],
+
+          // 공개 설정
+          const SizedBox(height: Dimensions.md),
+          const _SectionTitle('공개 설정'),
+          const SizedBox(height: 4),
+          Text(
+            _isPublic
+                ? '다른 사람이 이 코스를 열람하고 좋아요를 누를 수 있어요'
+                : '나와 초대한 멤버만 볼 수 있어요',
+            style: TextStyle(
+              fontSize: 11,
+              color: DottieColors.textPrimary.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: Dimensions.sm),
+          _VisibilityToggle(
+            isPublic: _isPublic,
+            onChanged: (v) =>
+                setState(() => _visibility = v ? 'public' : 'private'),
+          ),
 
           // 코스 삭제
           const SizedBox(height: Dimensions.xl),
@@ -354,6 +401,54 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
     });
   }
 
+  Future<void> _pickAndUploadCover() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('카메라로 찍기'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('앨범에서 선택'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final file = await ImagePicker().pickImage(source: source);
+    if (file == null || !mounted) return;
+    setState(() => _uploadingCover = true);
+    // 스코프(purpose=course_cover, todoListId)를 실어 보냄 → BE 가 R2 키를
+    // 코스 기준으로 구성(예: todo-lists/{id}/cover/...). 항목 사진(추후)은
+    // itemId 까지 실으면 됨.
+    final url = await ref.read(mediaUploadServiceProvider).upload(
+          file.path,
+          purpose: 'course_cover',
+          todoListId: widget.todoListId,
+          // 커버는 카드 배경/미리보기용 — 저해상도로 용량 절감(preview 화질).
+          maxDimension: 720,
+          quality: 68,
+        );
+    if (!mounted) return;
+    setState(() {
+      _uploadingCover = false;
+      if (url != null) _coverImageUrl = url;
+    });
+    if (url == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사진 업로드에 실패했어요')),
+      );
+    }
+  }
+
   Future<void> _confirmDelete(TodoList original) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -404,8 +499,15 @@ class _TodoEditScreenState extends ConsumerState<TodoEditScreen> {
             ? null
             : _descController.text.trim(),
         tags: _selectedTags.toList(),
+        visibility: _visibility,
       );
       await ref.read(todoNotifierProvider.notifier).updateTodoList(updated);
+      // 커버는 전용 엔드포인트 — 변경됐을 때만 별도 반영(설정/해제).
+      if (_coverImageUrl != original.coverImageUrl) {
+        await ref
+            .read(todoNotifierProvider.notifier)
+            .setCover(original.id, _coverImageUrl);
+      }
       if (!mounted) return;
       context.pop();
     } catch (e) {
@@ -431,6 +533,122 @@ class _SectionTitle extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: DottieColors.textPrimary,
         ),
+      );
+}
+
+/// 커버 사진 선택/미리보기 — 없으면 "사진 추가" 박스, 있으면 16:9 미리보기 +
+/// 제거(X)·변경 버튼. 업로드 중엔 스피너.
+class _CoverPicker extends StatelessWidget {
+  const _CoverPicker({
+    required this.imageUrl,
+    required this.uploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+  final String? imageUrl;
+  final bool uploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (uploading) {
+      return _frame(
+        const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    if (!hasImage) {
+      return GestureDetector(
+        onTap: onPick,
+        child: _frame(
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_photo_alternate_outlined,
+                  size: 28,
+                  color: DottieColors.textPrimary.withValues(alpha: 0.4)),
+              const SizedBox(height: 6),
+              Text(
+                '사진 추가',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: DottieColors.textPrimary.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: DottieColors.surfaceVariant,
+                alignment: Alignment.center,
+                child: const Icon(Icons.broken_image_outlined,
+                    color: DottieColors.textHint),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: const CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Colors.black54,
+                  child: Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: onPick,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '변경',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _frame(Widget child) => Container(
+        height: 140,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: DottieColors.surface,
+          borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+          border: Border.all(color: DottieColors.border, width: 1),
+        ),
+        child: child,
       );
 }
 
@@ -477,6 +695,97 @@ class _ModeToggle extends StatelessWidget {
             isFirst: false,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VisibilityToggle extends StatelessWidget {
+  const _VisibilityToggle({required this.isPublic, required this.onChanged});
+  final bool isPublic;
+  final void Function(bool) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: DottieColors.surface,
+        borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+      ),
+      child: Row(
+        children: [
+          _VisibilityOption(
+            icon: Icons.lock_outline_rounded,
+            label: '비공개',
+            selected: !isPublic,
+            onTap: () => onChanged(false),
+          ),
+          _VisibilityOption(
+            icon: Icons.public_rounded,
+            label: '공개',
+            selected: isPublic,
+            onTap: () => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VisibilityOption extends StatelessWidget {
+  const _VisibilityOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? DottieColors.primary.withValues(alpha: 0.1)
+                : Colors.transparent,
+            border: Border.all(
+              color: selected ? DottieColors.primary : Colors.transparent,
+              width: 1.4,
+            ),
+            borderRadius: BorderRadius.circular(Dimensions.radiusMd),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected
+                    ? DottieColors.primary
+                    : DottieColors.textPrimary.withValues(alpha: 0.6),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? DottieColors.primary
+                      : DottieColors.textPrimary.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

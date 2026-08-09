@@ -160,6 +160,18 @@ class $DotTableTable extends DotTable
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _sharedRoomIdsJsonMeta = const VerificationMeta(
+    'sharedRoomIdsJson',
+  );
+  @override
+  late final GeneratedColumn<String> sharedRoomIdsJson =
+      GeneratedColumn<String>(
+        'shared_room_ids_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
   @override
   late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
@@ -189,6 +201,7 @@ class $DotTableTable extends DotTable
     emotion,
     dayLogId,
     tagsJson,
+    sharedRoomIdsJson,
     synced,
   ];
   @override
@@ -306,6 +319,15 @@ class $DotTableTable extends DotTable
         tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
       );
     }
+    if (data.containsKey('shared_room_ids_json')) {
+      context.handle(
+        _sharedRoomIdsJsonMeta,
+        sharedRoomIdsJson.isAcceptableOrUnknown(
+          data['shared_room_ids_json']!,
+          _sharedRoomIdsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('synced')) {
       context.handle(
         _syncedMeta,
@@ -377,6 +399,10 @@ class $DotTableTable extends DotTable
         DriftSqlType.string,
         data['${effectivePrefix}tags_json'],
       )!,
+      sharedRoomIdsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shared_room_ids_json'],
+      ),
       synced: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}synced'],
@@ -405,6 +431,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
   final String? emotion;
   final String dayLogId;
   final String tagsJson;
+  final String? sharedRoomIdsJson;
   final bool synced;
   const DotTableData({
     required this.id,
@@ -421,6 +448,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
     this.emotion,
     required this.dayLogId,
     required this.tagsJson,
+    this.sharedRoomIdsJson,
     required this.synced,
   });
   @override
@@ -456,6 +484,9 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
     }
     map['day_log_id'] = Variable<String>(dayLogId);
     map['tags_json'] = Variable<String>(tagsJson);
+    if (!nullToAbsent || sharedRoomIdsJson != null) {
+      map['shared_room_ids_json'] = Variable<String>(sharedRoomIdsJson);
+    }
     map['synced'] = Variable<bool>(synced);
     return map;
   }
@@ -490,6 +521,9 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
           : Value(emotion),
       dayLogId: Value(dayLogId),
       tagsJson: Value(tagsJson),
+      sharedRoomIdsJson: sharedRoomIdsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sharedRoomIdsJson),
       synced: Value(synced),
     );
   }
@@ -514,6 +548,9 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
       emotion: serializer.fromJson<String?>(json['emotion']),
       dayLogId: serializer.fromJson<String>(json['dayLogId']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      sharedRoomIdsJson: serializer.fromJson<String?>(
+        json['sharedRoomIdsJson'],
+      ),
       synced: serializer.fromJson<bool>(json['synced']),
     );
   }
@@ -535,6 +572,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
       'emotion': serializer.toJson<String?>(emotion),
       'dayLogId': serializer.toJson<String>(dayLogId),
       'tagsJson': serializer.toJson<String>(tagsJson),
+      'sharedRoomIdsJson': serializer.toJson<String?>(sharedRoomIdsJson),
       'synced': serializer.toJson<bool>(synced),
     };
   }
@@ -554,6 +592,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
     Value<String?> emotion = const Value.absent(),
     String? dayLogId,
     String? tagsJson,
+    Value<String?> sharedRoomIdsJson = const Value.absent(),
     bool? synced,
   }) => DotTableData(
     id: id ?? this.id,
@@ -578,6 +617,9 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
     emotion: emotion.present ? emotion.value : this.emotion,
     dayLogId: dayLogId ?? this.dayLogId,
     tagsJson: tagsJson ?? this.tagsJson,
+    sharedRoomIdsJson: sharedRoomIdsJson.present
+        ? sharedRoomIdsJson.value
+        : this.sharedRoomIdsJson,
     synced: synced ?? this.synced,
   );
   DotTableData copyWithCompanion(DotTableCompanion data) {
@@ -604,6 +646,9 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
       emotion: data.emotion.present ? data.emotion.value : this.emotion,
       dayLogId: data.dayLogId.present ? data.dayLogId.value : this.dayLogId,
       tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      sharedRoomIdsJson: data.sharedRoomIdsJson.present
+          ? data.sharedRoomIdsJson.value
+          : this.sharedRoomIdsJson,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
   }
@@ -625,6 +670,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
           ..write('emotion: $emotion, ')
           ..write('dayLogId: $dayLogId, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('sharedRoomIdsJson: $sharedRoomIdsJson, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
@@ -646,6 +692,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
     emotion,
     dayLogId,
     tagsJson,
+    sharedRoomIdsJson,
     synced,
   );
   @override
@@ -666,6 +713,7 @@ class DotTableData extends DataClass implements Insertable<DotTableData> {
           other.emotion == this.emotion &&
           other.dayLogId == this.dayLogId &&
           other.tagsJson == this.tagsJson &&
+          other.sharedRoomIdsJson == this.sharedRoomIdsJson &&
           other.synced == this.synced);
 }
 
@@ -684,6 +732,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
   final Value<String?> emotion;
   final Value<String> dayLogId;
   final Value<String> tagsJson;
+  final Value<String?> sharedRoomIdsJson;
   final Value<bool> synced;
   final Value<int> rowid;
   const DotTableCompanion({
@@ -701,6 +750,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
     this.emotion = const Value.absent(),
     this.dayLogId = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.sharedRoomIdsJson = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -719,6 +769,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
     this.emotion = const Value.absent(),
     required String dayLogId,
     this.tagsJson = const Value.absent(),
+    this.sharedRoomIdsJson = const Value.absent(),
     this.synced = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -741,6 +792,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
     Expression<String>? emotion,
     Expression<String>? dayLogId,
     Expression<String>? tagsJson,
+    Expression<String>? sharedRoomIdsJson,
     Expression<bool>? synced,
     Expression<int>? rowid,
   }) {
@@ -759,6 +811,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
       if (emotion != null) 'emotion': emotion,
       if (dayLogId != null) 'day_log_id': dayLogId,
       if (tagsJson != null) 'tags_json': tagsJson,
+      if (sharedRoomIdsJson != null) 'shared_room_ids_json': sharedRoomIdsJson,
       if (synced != null) 'synced': synced,
       if (rowid != null) 'rowid': rowid,
     });
@@ -779,6 +832,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
     Value<String?>? emotion,
     Value<String>? dayLogId,
     Value<String>? tagsJson,
+    Value<String?>? sharedRoomIdsJson,
     Value<bool>? synced,
     Value<int>? rowid,
   }) {
@@ -797,6 +851,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
       emotion: emotion ?? this.emotion,
       dayLogId: dayLogId ?? this.dayLogId,
       tagsJson: tagsJson ?? this.tagsJson,
+      sharedRoomIdsJson: sharedRoomIdsJson ?? this.sharedRoomIdsJson,
       synced: synced ?? this.synced,
       rowid: rowid ?? this.rowid,
     );
@@ -847,6 +902,9 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
     if (tagsJson.present) {
       map['tags_json'] = Variable<String>(tagsJson.value);
     }
+    if (sharedRoomIdsJson.present) {
+      map['shared_room_ids_json'] = Variable<String>(sharedRoomIdsJson.value);
+    }
     if (synced.present) {
       map['synced'] = Variable<bool>(synced.value);
     }
@@ -873,6 +931,7 @@ class DotTableCompanion extends UpdateCompanion<DotTableData> {
           ..write('emotion: $emotion, ')
           ..write('dayLogId: $dayLogId, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('sharedRoomIdsJson: $sharedRoomIdsJson, ')
           ..write('synced: $synced, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1576,6 +1635,27 @@ class $TodoListTableTable extends TodoListTable
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _likeCountMeta = const VerificationMeta(
+    'likeCount',
+  );
+  @override
+  late final GeneratedColumn<int> likeCount = GeneratedColumn<int>(
+    'like_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _regionMeta = const VerificationMeta('region');
+  @override
+  late final GeneratedColumn<String> region = GeneratedColumn<String>(
+    'region',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1598,6 +1678,8 @@ class $TodoListTableTable extends TodoListTable
     membersJson,
     isPinned,
     pinOrder,
+    likeCount,
+    region,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1754,6 +1836,18 @@ class $TodoListTableTable extends TodoListTable
         pinOrder.isAcceptableOrUnknown(data['pin_order']!, _pinOrderMeta),
       );
     }
+    if (data.containsKey('like_count')) {
+      context.handle(
+        _likeCountMeta,
+        likeCount.isAcceptableOrUnknown(data['like_count']!, _likeCountMeta),
+      );
+    }
+    if (data.containsKey('region')) {
+      context.handle(
+        _regionMeta,
+        region.isAcceptableOrUnknown(data['region']!, _regionMeta),
+      );
+    }
     return context;
   }
 
@@ -1843,6 +1937,14 @@ class $TodoListTableTable extends TodoListTable
         DriftSqlType.int,
         data['${effectivePrefix}pin_order'],
       )!,
+      likeCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}like_count'],
+      )!,
+      region: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}region'],
+      ),
     );
   }
 
@@ -1874,6 +1976,8 @@ class TodoListTableData extends DataClass
   final String membersJson;
   final bool isPinned;
   final int pinOrder;
+  final int likeCount;
+  final String? region;
   const TodoListTableData({
     required this.id,
     required this.ownerId,
@@ -1895,6 +1999,8 @@ class TodoListTableData extends DataClass
     required this.membersJson,
     required this.isPinned,
     required this.pinOrder,
+    required this.likeCount,
+    this.region,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1929,6 +2035,10 @@ class TodoListTableData extends DataClass
     map['members_json'] = Variable<String>(membersJson);
     map['is_pinned'] = Variable<bool>(isPinned);
     map['pin_order'] = Variable<int>(pinOrder);
+    map['like_count'] = Variable<int>(likeCount);
+    if (!nullToAbsent || region != null) {
+      map['region'] = Variable<String>(region);
+    }
     return map;
   }
 
@@ -1964,6 +2074,10 @@ class TodoListTableData extends DataClass
       membersJson: Value(membersJson),
       isPinned: Value(isPinned),
       pinOrder: Value(pinOrder),
+      likeCount: Value(likeCount),
+      region: region == null && nullToAbsent
+          ? const Value.absent()
+          : Value(region),
     );
   }
 
@@ -1995,6 +2109,8 @@ class TodoListTableData extends DataClass
       membersJson: serializer.fromJson<String>(json['membersJson']),
       isPinned: serializer.fromJson<bool>(json['isPinned']),
       pinOrder: serializer.fromJson<int>(json['pinOrder']),
+      likeCount: serializer.fromJson<int>(json['likeCount']),
+      region: serializer.fromJson<String?>(json['region']),
     );
   }
   @override
@@ -2021,6 +2137,8 @@ class TodoListTableData extends DataClass
       'membersJson': serializer.toJson<String>(membersJson),
       'isPinned': serializer.toJson<bool>(isPinned),
       'pinOrder': serializer.toJson<int>(pinOrder),
+      'likeCount': serializer.toJson<int>(likeCount),
+      'region': serializer.toJson<String?>(region),
     };
   }
 
@@ -2045,6 +2163,8 @@ class TodoListTableData extends DataClass
     String? membersJson,
     bool? isPinned,
     int? pinOrder,
+    int? likeCount,
+    Value<String?> region = const Value.absent(),
   }) => TodoListTableData(
     id: id ?? this.id,
     ownerId: ownerId ?? this.ownerId,
@@ -2070,6 +2190,8 @@ class TodoListTableData extends DataClass
     membersJson: membersJson ?? this.membersJson,
     isPinned: isPinned ?? this.isPinned,
     pinOrder: pinOrder ?? this.pinOrder,
+    likeCount: likeCount ?? this.likeCount,
+    region: region.present ? region.value : this.region,
   );
   TodoListTableData copyWithCompanion(TodoListTableCompanion data) {
     return TodoListTableData(
@@ -2111,6 +2233,8 @@ class TodoListTableData extends DataClass
           : this.membersJson,
       isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
       pinOrder: data.pinOrder.present ? data.pinOrder.value : this.pinOrder,
+      likeCount: data.likeCount.present ? data.likeCount.value : this.likeCount,
+      region: data.region.present ? data.region.value : this.region,
     );
   }
 
@@ -2136,13 +2260,15 @@ class TodoListTableData extends DataClass
           ..write('isImported: $isImported, ')
           ..write('membersJson: $membersJson, ')
           ..write('isPinned: $isPinned, ')
-          ..write('pinOrder: $pinOrder')
+          ..write('pinOrder: $pinOrder, ')
+          ..write('likeCount: $likeCount, ')
+          ..write('region: $region')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     ownerId,
     name,
@@ -2163,7 +2289,9 @@ class TodoListTableData extends DataClass
     membersJson,
     isPinned,
     pinOrder,
-  );
+    likeCount,
+    region,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2187,7 +2315,9 @@ class TodoListTableData extends DataClass
           other.isImported == this.isImported &&
           other.membersJson == this.membersJson &&
           other.isPinned == this.isPinned &&
-          other.pinOrder == this.pinOrder);
+          other.pinOrder == this.pinOrder &&
+          other.likeCount == this.likeCount &&
+          other.region == this.region);
 }
 
 class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
@@ -2211,6 +2341,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
   final Value<String> membersJson;
   final Value<bool> isPinned;
   final Value<int> pinOrder;
+  final Value<int> likeCount;
+  final Value<String?> region;
   final Value<int> rowid;
   const TodoListTableCompanion({
     this.id = const Value.absent(),
@@ -2233,6 +2365,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
     this.membersJson = const Value.absent(),
     this.isPinned = const Value.absent(),
     this.pinOrder = const Value.absent(),
+    this.likeCount = const Value.absent(),
+    this.region = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TodoListTableCompanion.insert({
@@ -2256,6 +2390,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
     this.membersJson = const Value.absent(),
     this.isPinned = const Value.absent(),
     this.pinOrder = const Value.absent(),
+    this.likeCount = const Value.absent(),
+    this.region = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        ownerId = Value(ownerId),
@@ -2285,6 +2421,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
     Expression<String>? membersJson,
     Expression<bool>? isPinned,
     Expression<int>? pinOrder,
+    Expression<int>? likeCount,
+    Expression<String>? region,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2309,6 +2447,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
       if (membersJson != null) 'members_json': membersJson,
       if (isPinned != null) 'is_pinned': isPinned,
       if (pinOrder != null) 'pin_order': pinOrder,
+      if (likeCount != null) 'like_count': likeCount,
+      if (region != null) 'region': region,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2334,6 +2474,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
     Value<String>? membersJson,
     Value<bool>? isPinned,
     Value<int>? pinOrder,
+    Value<int>? likeCount,
+    Value<String?>? region,
     Value<int>? rowid,
   }) {
     return TodoListTableCompanion(
@@ -2357,6 +2499,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
       membersJson: membersJson ?? this.membersJson,
       isPinned: isPinned ?? this.isPinned,
       pinOrder: pinOrder ?? this.pinOrder,
+      likeCount: likeCount ?? this.likeCount,
+      region: region ?? this.region,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2426,6 +2570,12 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
     if (pinOrder.present) {
       map['pin_order'] = Variable<int>(pinOrder.value);
     }
+    if (likeCount.present) {
+      map['like_count'] = Variable<int>(likeCount.value);
+    }
+    if (region.present) {
+      map['region'] = Variable<String>(region.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2455,6 +2605,8 @@ class TodoListTableCompanion extends UpdateCompanion<TodoListTableData> {
           ..write('membersJson: $membersJson, ')
           ..write('isPinned: $isPinned, ')
           ..write('pinOrder: $pinOrder, ')
+          ..write('likeCount: $likeCount, ')
+          ..write('region: $region, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3574,6 +3726,7 @@ typedef $$DotTableTableCreateCompanionBuilder =
       Value<String?> emotion,
       required String dayLogId,
       Value<String> tagsJson,
+      Value<String?> sharedRoomIdsJson,
       Value<bool> synced,
       Value<int> rowid,
     });
@@ -3593,6 +3746,7 @@ typedef $$DotTableTableUpdateCompanionBuilder =
       Value<String?> emotion,
       Value<String> dayLogId,
       Value<String> tagsJson,
+      Value<String?> sharedRoomIdsJson,
       Value<bool> synced,
       Value<int> rowid,
     });
@@ -3673,6 +3827,11 @@ class $$DotTableTableFilterComposer
 
   ColumnFilters<String> get tagsJson => $composableBuilder(
     column: $table.tagsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sharedRoomIdsJson => $composableBuilder(
+    column: $table.sharedRoomIdsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3761,6 +3920,11 @@ class $$DotTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sharedRoomIdsJson => $composableBuilder(
+    column: $table.sharedRoomIdsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get synced => $composableBuilder(
     column: $table.synced,
     builder: (column) => ColumnOrderings(column),
@@ -3826,6 +3990,11 @@ class $$DotTableTableAnnotationComposer
   GeneratedColumn<String> get tagsJson =>
       $composableBuilder(column: $table.tagsJson, builder: (column) => column);
 
+  GeneratedColumn<String> get sharedRoomIdsJson => $composableBuilder(
+    column: $table.sharedRoomIdsJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get synced =>
       $composableBuilder(column: $table.synced, builder: (column) => column);
 }
@@ -3875,6 +4044,7 @@ class $$DotTableTableTableManager
                 Value<String?> emotion = const Value.absent(),
                 Value<String> dayLogId = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> sharedRoomIdsJson = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DotTableCompanion(
@@ -3892,6 +4062,7 @@ class $$DotTableTableTableManager
                 emotion: emotion,
                 dayLogId: dayLogId,
                 tagsJson: tagsJson,
+                sharedRoomIdsJson: sharedRoomIdsJson,
                 synced: synced,
                 rowid: rowid,
               ),
@@ -3911,6 +4082,7 @@ class $$DotTableTableTableManager
                 Value<String?> emotion = const Value.absent(),
                 required String dayLogId,
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> sharedRoomIdsJson = const Value.absent(),
                 Value<bool> synced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DotTableCompanion.insert(
@@ -3928,6 +4100,7 @@ class $$DotTableTableTableManager
                 emotion: emotion,
                 dayLogId: dayLogId,
                 tagsJson: tagsJson,
+                sharedRoomIdsJson: sharedRoomIdsJson,
                 synced: synced,
                 rowid: rowid,
               ),
@@ -4218,6 +4391,8 @@ typedef $$TodoListTableTableCreateCompanionBuilder =
       Value<String> membersJson,
       Value<bool> isPinned,
       Value<int> pinOrder,
+      Value<int> likeCount,
+      Value<String?> region,
       Value<int> rowid,
     });
 typedef $$TodoListTableTableUpdateCompanionBuilder =
@@ -4242,6 +4417,8 @@ typedef $$TodoListTableTableUpdateCompanionBuilder =
       Value<String> membersJson,
       Value<bool> isPinned,
       Value<int> pinOrder,
+      Value<int> likeCount,
+      Value<String?> region,
       Value<int> rowid,
     });
 
@@ -4385,6 +4562,16 @@ class $$TodoListTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get likeCount => $composableBuilder(
+    column: $table.likeCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get region => $composableBuilder(
+    column: $table.region,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> todoItemTableRefs(
     Expression<bool> Function($$TodoItemTableTableFilterComposer f) f,
   ) {
@@ -4519,6 +4706,16 @@ class $$TodoListTableTableOrderingComposer
     column: $table.pinOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get likeCount => $composableBuilder(
+    column: $table.likeCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get region => $composableBuilder(
+    column: $table.region,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TodoListTableTableAnnotationComposer
@@ -4608,6 +4805,12 @@ class $$TodoListTableTableAnnotationComposer
   GeneratedColumn<int> get pinOrder =>
       $composableBuilder(column: $table.pinOrder, builder: (column) => column);
 
+  GeneratedColumn<int> get likeCount =>
+      $composableBuilder(column: $table.likeCount, builder: (column) => column);
+
+  GeneratedColumn<String> get region =>
+      $composableBuilder(column: $table.region, builder: (column) => column);
+
   Expression<T> todoItemTableRefs<T extends Object>(
     Expression<T> Function($$TodoItemTableTableAnnotationComposer a) f,
   ) {
@@ -4682,6 +4885,8 @@ class $$TodoListTableTableTableManager
                 Value<String> membersJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
                 Value<int> pinOrder = const Value.absent(),
+                Value<int> likeCount = const Value.absent(),
+                Value<String?> region = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodoListTableCompanion(
                 id: id,
@@ -4704,6 +4909,8 @@ class $$TodoListTableTableTableManager
                 membersJson: membersJson,
                 isPinned: isPinned,
                 pinOrder: pinOrder,
+                likeCount: likeCount,
+                region: region,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4728,6 +4935,8 @@ class $$TodoListTableTableTableManager
                 Value<String> membersJson = const Value.absent(),
                 Value<bool> isPinned = const Value.absent(),
                 Value<int> pinOrder = const Value.absent(),
+                Value<int> likeCount = const Value.absent(),
+                Value<String?> region = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodoListTableCompanion.insert(
                 id: id,
@@ -4750,6 +4959,8 @@ class $$TodoListTableTableTableManager
                 membersJson: membersJson,
                 isPinned: isPinned,
                 pinOrder: pinOrder,
+                likeCount: likeCount,
+                region: region,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -60,11 +60,14 @@ class TodoRepository {
             members: list.members.isNotEmpty
                 ? list.members
                 : (localMeta?.members ?? const []),
-            // 로컬 고정 정보 보존 — 없으면 서버 값 사용(로그아웃 후 재로그인 복원).
-            isPinned: localMeta?.isPinned ?? list.isPinned,
-            pinOrder: localMeta?.pinOrder ?? list.pinOrder,
+            // 고정은 per-user — 서버가 caller 기준 값을 내려주므로 서버 권위.
+            // (unsynced 로컬 편집은 위 `!localRow.synced` 가드로 이미 보호됨)
+            isPinned: list.isPinned,
+            pinOrder: list.pinOrder,
             // 리스트 API가 description을 생략할 수 있으므로 로컬 값 보존.
             description: list.description ?? localMeta?.description,
+            // 커버는 아직 BE 미저장(다음 단계) — 서버가 null 로 보내면 로컬 보존.
+            coverImageUrl: list.coverImageUrl ?? localMeta?.coverImageUrl,
           ),
         );
         // items 가 응답에 포함된 경우 로컬 캐시 갱신 — 카드 진행률 최신화.
@@ -102,7 +105,7 @@ class TodoRepository {
     }
   }
 
-  Future<TodoList?> getTodoListById(String id) async {
+  Future<TodoList?> getTodoListById(String id, {String? viewerUid}) async {
     // pending 로컬 편집이 서버 stale 응답으로 덮이지 않게 sync 선행
     // (best-effort — _inFlightSync 가드로 중복 호출 안전).
     await syncUnsynced();
@@ -112,6 +115,19 @@ class TodoRepository {
         await _local.deleteTodoListById(id);
         return null;
       }
+      // 디스커버리로 연 "남의 공개 코스"(내가 owner/member 아님)는 로컬 DB 에
+      // 저장하지 않는다 — 저장하면 getAllTodoLists 경유로 내 스팟 목록에 잠깐
+      // 섞여 보인다. 상세 렌더용으로 원격 응답만 그대로 반환.
+      final isMine = viewerUid != null &&
+          (remote.ownerId == viewerUid ||
+              remote.members.any((m) => m.userId == viewerUid));
+      final localExists = await _local.getTodoListById(id) != null;
+      if (!isMine && !localExists) {
+        return remote.copyWith(
+          synced: true,
+          courseType: _resolveCourseType(remote),
+        );
+      }
       final localListRow = await _local.getTodoListById(id);
       final localMeta = localListRow != null
           ? _local.todoListFromRow(localListRow, const [])
@@ -119,11 +135,14 @@ class TodoRepository {
       final toStore = remote.copyWith(
         synced: true,
         courseType: _resolveCourseType(remote),
-        // 로컬 고정 정보 보존 — 없으면 서버 값 사용(로그아웃 후 재로그인 복원).
-        isPinned: localMeta?.isPinned ?? remote.isPinned,
-        pinOrder: localMeta?.pinOrder ?? remote.pinOrder,
+        // 고정은 per-user — 서버 caller 기준 값 권위. unsynced 로컬 편집은
+        // 아래 `localListRow.synced` 가드로 보호되므로 여기선 서버 값 사용.
+        isPinned: remote.isPinned,
+        pinOrder: remote.pinOrder,
         // 단일 GET도 description을 생략할 수 있으므로 로컬 값 보존.
         description: remote.description ?? localMeta?.description,
+        // 커버는 아직 BE 미저장(다음 단계) — 서버가 null 로 보내면 로컬 보존.
+        coverImageUrl: remote.coverImageUrl ?? localMeta?.coverImageUrl,
       );
       if (localListRow == null || localListRow.synced) {
         await _local.upsertTodoList(toStore);
@@ -271,12 +290,15 @@ class TodoRepository {
         description: list.description,
         tags: list.tags,
         visibility: list.visibility,
+        // 커버는 일반 PATCH 로 안 보냄 — 전용 [setCover] 엔드포인트 사용.
       );
       final stored = remote.copyWith(
         synced: true,
         courseType: list.courseType,
         description: list.description ?? remote.description,
         tags: list.tags.isNotEmpty ? list.tags : remote.tags,
+        // 커버는 서버 응답 우선, 없으면 로컬 보존(전용 엔드포인트로 별도 반영).
+        coverImageUrl: remote.coverImageUrl ?? list.coverImageUrl,
         visibility: list.visibility,
       );
       await _local.upsertTodoList(stored);
@@ -289,19 +311,43 @@ class TodoRepository {
     }
   }
 
+  /// 커버 사진 설정/해제 — 전용 엔드포인트. 성공 시 갱신된 코스 반환 + 로컬 저장.
+  Future<TodoList?> setCover(String todoListId, String? coverImageUrl) async {
+    final remote = await _remote.setCover(todoListId, coverImageUrl);
+    final localRow = await _local.getTodoListById(todoListId);
+    final localMeta =
+        localRow != null ? _local.todoListFromRow(localRow, const []) : null;
+    // 서버 응답에 cover 가 담겨 오지만(BE 반환), 방어적으로 요청값 폴백.
+    final stored = remote.copyWith(
+      synced: true,
+      courseType: _resolveCourseType(remote),
+      coverImageUrl: coverImageUrl,
+      description: remote.description ?? localMeta?.description,
+      isPinned: localMeta?.isPinned ?? remote.isPinned,
+      pinOrder: localMeta?.pinOrder ?? remote.pinOrder,
+    );
+    await _local.upsertTodoList(stored);
+    return stored;
+  }
+
+  /// 코스 고정 토글 (per-user). pin_order 는 BE 가 내 고정 MAX+1 로 부여.
   Future<void> togglePinCollection(TodoList list) async {
     final newPinned = !list.isPinned;
-    final newOrder = newPinned ? DateTime.now().millisecondsSinceEpoch ~/ 1000 : 0;
-    // 낙관적으로 로컬 먼저 업데이트
-    await _local.upsertTodoList(list.copyWith(isPinned: newPinned, pinOrder: newOrder));
+    // 낙관적으로 로컬 먼저 반영 (pin_order 는 서버 확정값으로 갱신).
+    await _local.upsertTodoList(list.copyWith(isPinned: newPinned));
     try {
-      // BE에도 저장 — 로그아웃 후 재로그인 시 pin 상태 복원을 위해.
-      final updated = await _remote.pinTodoList(list.id, isPinned: newPinned, pinOrder: newOrder);
-      // 서버 응답으로 로컬 갱신 (pin 외 필드는 로컬 메타 보존).
-      await _local.upsertTodoList(updated.copyWith(isPinned: newPinned, pinOrder: newOrder, synced: true));
+      final updated = await _remote.pinTodoList(list.id, isPinned: newPinned);
+      // pin 확정값만 서버에서, 나머지 필드(description/members 등)는 로컬 유지.
+      await _local.upsertTodoList(
+        list.copyWith(
+          isPinned: updated.isPinned,
+          pinOrder: updated.pinOrder,
+          synced: true,
+        ),
+      );
     } on DioException catch (e) {
       if (e.response != null) rethrow; // BE 비즈니스 에러는 전파
-      // 오프라인 — 로컬만 저장된 상태로 유지 (다음 온라인 시 sync 필요)
+      // 오프라인 — 낙관적 로컬만 유지 (다음 sync 시 서버 권위로 정정).
     }
   }
 
@@ -388,10 +434,15 @@ class TodoRepository {
         orderInDay: item.orderInDay,
         notes: item.notes,
         emotion: item.emotion,
-        isPinned: item.isPinned,
       );
-      await _local.upsertTodoItem(remote.copyWith(synced: true));
-      return remote.copyWith(synced: true);
+      // 일반 편집 응답은 pin 을 건드리지 않음 — 로컬 pin 상태 유지.
+      final merged = remote.copyWith(
+        isPinned: item.isPinned,
+        pinOrder: item.pinOrder,
+        synced: true,
+      );
+      await _local.upsertTodoItem(merged);
+      return merged;
     } on DioException catch (e) {
       if (e.response != null) rethrow;
       final next = item.copyWith(synced: false);
@@ -400,8 +451,34 @@ class TodoRepository {
     }
   }
 
-  Future<TodoItem?> togglePin(TodoItem item) =>
-      updateItem(item.copyWith(isPinned: !item.isPinned));
+  /// 항목 고정 토글 (per-user). 전용 엔드포인트 — 일반 편집이 pin 을 덮지 않는다.
+  /// 순서는 BE 가 내 고정 MAX+1 로 부여하므로 서버 응답값으로 로컬 갱신.
+  Future<TodoItem?> togglePin(TodoItem item) async {
+    final newPinned = !item.isPinned;
+    // 낙관적 로컬 반영 (즉시 UI 이동).
+    await _local.upsertTodoItem(item.copyWith(isPinned: newPinned));
+    try {
+      final remote = await _remote.pinTodoItem(
+        item.todoListId,
+        item.id,
+        isPinned: newPinned,
+      );
+      // pin 확정값만 서버에서, 나머지 필드(place 등)는 로컬 유지.
+      final merged = item.copyWith(
+        isPinned: remote.isPinned,
+        pinOrder: remote.pinOrder,
+        synced: true,
+      );
+      await _local.upsertTodoItem(merged);
+      return merged;
+    } on DioException catch (e) {
+      if (e.response != null) rethrow;
+      // 오프라인 — 낙관적 로컬만 유지 (다음 sync 시 서버 권위로 정정).
+      final next = item.copyWith(isPinned: newPinned, synced: false);
+      await _local.upsertTodoItem(next);
+      return next;
+    }
+  }
 
   Future<bool> deleteItem({
     required String todoListId,
@@ -629,6 +706,43 @@ class TodoRepository {
   Future<TodoList> setListRoom(String todoListId, String? roomId) =>
       _remote.setListRoom(todoListId, roomId);
 
+  /// 공개 코스 가져오기(복제) — 온라인 전용. 성공 시 내 소유 새 코스 반환 + 로컬 저장.
+  Future<TodoList?> cloneCourse(String todoListId, {String? name}) async {
+    final remote = await _remote.cloneCourse(todoListId, name: name);
+    final stored = remote.copyWith(
+      synced: true,
+      courseType: _resolveCourseType(remote),
+    );
+    await _local.upsertTodoList(stored);
+    for (final item in remote.items) {
+      await _local.upsertTodoItem(item.copyWith(synced: true));
+    }
+    return stored;
+  }
+
+  /// 공개 코스 신고 — 온라인 전용.
+  Future<void> reportCourse(
+    String todoListId, {
+    required String reason,
+    String? detail,
+  }) =>
+      _remote.reportCourse(todoListId, reason: reason, detail: detail);
+
+  /// 좋아요 토글 (멱등) — 온라인 전용. 성공 시 최신 카운트 반환 + 로컬 캐시 갱신.
+  Future<({int likeCount, bool likedByMe})> setLike(
+      String todoListId, bool like) async {
+    final result = await _remote.setLike(todoListId, like);
+    // 목록 카드가 최신 카운트를 보이도록 로컬 캐시의 likeCount 반영(있을 때만).
+    final row = await _local.getTodoListById(todoListId);
+    if (row != null) {
+      final cached = _local.todoListFromRow(row, const []);
+      await _local.upsertTodoList(
+        cached.copyWith(likeCount: result.likeCount, synced: row.synced),
+      );
+    }
+    return result;
+  }
+
   Future<List<TodoList>> getListsByRoom(String roomId) =>
       _remote.getListsByRoom(roomId);
 
@@ -670,6 +784,7 @@ class TodoRepository {
               description: row.description,
               tags: row.tagsJson != '[]' ? (jsonDecode(row.tagsJson) as List).cast<String>() : null,
               visibility: row.visibility,
+              // 커버는 일반 create/patch 로 안 보냄 — 전용 /cover 엔드포인트 사용.
             );
             await _local.remapTodoListId(row.id, created.id);
             await _local.upsertTodoList(

@@ -29,9 +29,16 @@ Future<List<TodoList>> myTodoLists(Ref ref) async {
 }
 
 /// 단일 할일 상세 (items 포함). BE 우선.
+///
+/// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+/// 않도록 한다 — 내 스팟 목록 오염 방지.
 @riverpod
-Future<TodoList?> todoListById(Ref ref, String todoListId) =>
-    ref.watch(todoRepositoryProvider).getTodoListById(todoListId);
+Future<TodoList?> todoListById(Ref ref, String todoListId) async {
+  final user = await ref.watch(currentDottieUserProvider.future);
+  return ref
+      .watch(todoRepositoryProvider)
+      .getTodoListById(todoListId, viewerUid: user?.uid);
+}
 
 /// 룸에 연결된 스팟 리스트 목록.
 @riverpod
@@ -363,6 +370,71 @@ class TodoNotifier extends _$TodoNotifier {
       state = AsyncError(e, st);
       Error.throwWithStackTrace(e, st);
     }
+  }
+
+  /// 커버 사진 설정/해제 — 전용 엔드포인트. [coverImageUrl] null → 해제.
+  Future<void> setCover(String todoListId, String? coverImageUrl) async {
+    try {
+      await ref
+          .read(todoRepositoryProvider)
+          .setCover(todoListId, coverImageUrl);
+      _invalidate(todoListId: todoListId);
+    } on TodoApiException catch (e, st) {
+      Error.throwWithStackTrace(e, st);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      Error.throwWithStackTrace(e, st);
+    }
+  }
+
+  /// 공개 코스 가져오기(복제). 성공 시 새 코스 id 반환 → 상세 진입용.
+  Future<String?> cloneCourse(String todoListId, {String? name}) async {
+    state = const AsyncLoading();
+    try {
+      final cloned =
+          await ref.read(todoRepositoryProvider).cloneCourse(todoListId, name: name);
+      _invalidate();
+      state = const AsyncData(null);
+      return cloned?.id;
+    } on TodoApiException catch (e, st) {
+      state = const AsyncData(null);
+      Error.throwWithStackTrace(e, st);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return null;
+    }
+  }
+
+  /// 공개 코스 신고.
+  Future<void> reportCourse(
+    String todoListId, {
+    required String reason,
+    String? detail,
+  }) async {
+    try {
+      await ref
+          .read(todoRepositoryProvider)
+          .reportCourse(todoListId, reason: reason, detail: detail);
+    } on TodoApiException catch (e, st) {
+      Error.throwWithStackTrace(e, st);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      Error.throwWithStackTrace(e, st);
+    }
+  }
+
+  /// 좋아요 토글 (멱등). 성공 시 최신 카운트 반환. UI 는 낙관적 반영 후
+  /// 실패 시 revert 하도록 예외를 전파한다. state 는 건드리지 않아 화면 리로드
+  /// 플래시가 없다(호출 측 위젯이 로컬 상태로 즉시 반영).
+  Future<({int likeCount, bool likedByMe})> toggleLike(
+      String todoListId, bool like) async {
+    final result =
+        await ref.read(todoRepositoryProvider).setLike(todoListId, like);
+    // 캐시 최신화 — 다음 목록/상세 진입 시 정확한 카운트. 현재 화면은 낙관적
+    // 반영이라 재빌드 불필요하지만, 조용히 무효화해 캐시를 맞춘다.
+    ref.invalidate(myTodoListsProvider);
+    ref.invalidate(todoListByIdProvider(todoListId));
+    return result;
   }
 
   Future<void> setListRoom(String todoListId, String? roomId) async {

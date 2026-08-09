@@ -174,28 +174,43 @@ class DotRepository {
   /// 온라인 성공 시 로컬에도 **server dot id** 로 저장 — 이후 polling/검색/시트
   /// refresh 가 dot.id 매칭으로 동작하므로 client id 와 server id 가 다르면
   /// 매칭 실패 → 갱신 누락. id 일원화 필수.
-  Future<({String? dayLogId, String? serverDotId})> saveDot(
+  Future<({String? dayLogId, String? serverDotId, List<String>? sharedRoomIds})>
+      saveDot(
     Dot dot, {
     required String userId,
   }) async {
-    final (:dayLogId, :dotId) = await _remote.uploadDot(dot);
+    final (:dayLogId, :dotId, :sharedRoomIds) = await _remote.uploadDot(dot);
 
     if (dayLogId != null) {
-      // 온라인: 서버 ID로 로컬 daylog 보장 + dot 도 server id 로 저장 (synced=true).
-      await _local.ensureDayLog(dayLogId, dot.timestamp, userId);
-      await _local.insertDot(dot.copyWith(
-        id: dotId ?? dot.id,
-        dayLogId: dayLogId,
-        synced: true,
-      ));
+      // 온라인: 서버에 이미 저장 성공. 로컬 캐시 쓰기는 부차적 — 실패해도
+      // dot 자체는 서버에 안전하므로 예외를 삼키고 서버 결과를 반환한다.
+      // (이 로컬 쓰기가 throw 하면 caller 의 catch 가 dot=null 을 반환해
+      //  서버 등록이 됐는데도 "위치 수집 실패" 토스트가 뜨던 버그. 다음 sync 시
+      //  서버에서 다시 내려받아 로컬이 복구된다.)
+      // sharedRoomIds 는 서버가 돌려준 실제 공유 목록으로 갱신(없으면 선택 의도 유지).
+      try {
+        await _local.ensureDayLog(dayLogId, dot.timestamp, userId);
+        await _local.insertDot(dot.copyWith(
+          id: dotId ?? dot.id,
+          dayLogId: dayLogId,
+          synced: true,
+          sharedRoomIds: sharedRoomIds ?? dot.sharedRoomIds,
+        ));
+      } catch (e, st) {
+        debugPrint('[saveDot] 서버 저장 성공, 로컬 캐시 실패 (무시): $e\n$st');
+      }
     } else {
-      // 오프라인: temp dayLogId로 로컬 daylog 보장 후 dot 저장 (synced=false)
-      // photo_url 은 dot.photoUrl 에 이미 들어 있어 다음 batch sync 시 함께 전송.
+      // 오프라인: temp dayLogId로 로컬 daylog 보장 후 dot 저장 (synced=false).
+      // photo_url·room 선택은 dot 에 이미 들어 있어 다음 batch sync 시 함께 전송.
       await _local.ensureDayLog(dot.dayLogId, dot.timestamp, userId);
       await _local.insertDot(dot);
     }
 
-    return (dayLogId: dayLogId, serverDotId: dotId);
+    return (
+      dayLogId: dayLogId,
+      serverDotId: dotId,
+      sharedRoomIds: sharedRoomIds,
+    );
   }
 
   /// 사진 파일 업로드 → 서버 URL 반환

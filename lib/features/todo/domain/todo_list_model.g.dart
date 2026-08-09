@@ -46,6 +46,9 @@ _$TodoListImpl _$$TodoListImplFromJson(Map<String, dynamic> json) =>
       roomId: json['room_id'] as String?,
       isPinned: json['is_pinned'] as bool? ?? false,
       pinOrder: (json['pin_order'] as num?)?.toInt() ?? 0,
+      likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
+      likedByMe: json['liked_by_me'] as bool? ?? false,
+      region: json['region'] as String?,
     );
 
 Map<String, dynamic> _$$TodoListImplToJson(_$TodoListImpl instance) =>
@@ -74,4 +77,7 @@ Map<String, dynamic> _$$TodoListImplToJson(_$TodoListImpl instance) =>
       'room_id': instance.roomId,
       'is_pinned': instance.isPinned,
       'pin_order': instance.pinOrder,
+      'like_count': instance.likeCount,
+      'liked_by_me': instance.likedByMe,
+      'region': instance.region,
     };

@@ -40,6 +40,13 @@ class Dot with _$Dot {
     // 메모에서 추출된 해시태그 (정규화: lowercase, 30자, 최대 10개).
     // BE 가 권위 — FE 는 입력 시 prefilter 만 하고, 응답을 신뢰.
     @Default(<String>[]) List<String> tags,
+    // 이 dot 을 공유할/공유된 방 목록.
+    //   - null      → 방 선택 안 함(생략). BE 가 auto_share 켜진 방들로 자동 공유.
+    //   - []        → 개인 dot. 어느 방에도 안 올림.
+    //   - [id, ...] → 지정한 방에만 공유 (auto_share 무시).
+    // 요청(선택 의도)과 응답(실제 공유된 방)에 모두 쓰임 — 업로드 성공 후
+    // BE 가 돌려준 실제 목록으로 갱신한다.
+    @JsonKey(name: 'shared_room_ids') List<String>? sharedRoomIds,
   }) = _Dot;
 
   factory Dot.fromJson(Map<String, dynamic> json) => _$DotFromJson(json);

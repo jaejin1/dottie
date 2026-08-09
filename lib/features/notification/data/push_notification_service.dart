@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' show WidgetsBinding;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -68,6 +67,11 @@ class PushNotificationService {
   );
 
   bool _initialized = false;
+
+  /// terminated 상태에서 푸쉬 탭으로 앱이 시작된 경우의 대기 라우팅 데이터.
+  /// splash 가 인증 확인 후 [consumePendingInitialTap] 으로 가져가 처리한다.
+  Map<String, dynamic>? _pendingInitialTap;
+
   String? _lastRegisteredToken;
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<RemoteMessage>? _foregroundSub;
@@ -102,13 +106,13 @@ class PushNotificationService {
     }
 
     // (4) terminated 진입 케이스 — initial message.
+    // 여기서 바로 push 하면 splash 의 `context.go(home)`(인증 확인 후 2.2s)가
+    // 스택을 통째로 교체해 유실된다. 데이터만 보관해두고 splash 가 인증 확인
+    // 직후 consume 해서 홈 위에 dot-map 을 얹는다.
     final initial = await _messaging.getInitialMessage();
     if (initial != null) {
-      debugPrint('[FCM] initial message id=${initial.messageId}');
-      // 라우터가 mount 된 다음 frame 에 처리.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleNotificationTap(initial.data);
-      });
+      debugPrint('[FCM] initial message id=${initial.messageId} (pending)');
+      _pendingInitialTap = initial.data;
     }
 
     // (5) background 에서 앱 깨움 — onMessageOpenedApp.
@@ -251,6 +255,17 @@ class PushNotificationService {
     final data = _decodeData(payload);
     _handleNotificationTap(data);
   }
+
+  /// terminated 진입 시 보관해둔 푸쉬 탭 데이터를 반환하고 비운다.
+  /// splash 가 인증 확인 후 1회 호출. 없으면 null.
+  Map<String, dynamic>? consumePendingInitialTap() {
+    final data = _pendingInitialTap;
+    _pendingInitialTap = null;
+    return data;
+  }
+
+  /// 보관된 푸쉬 탭 데이터로 라우팅 (splash 에서 홈 진입 직후 호출).
+  void handleTapData(Map<String, dynamic> data) => _handleNotificationTap(data);
 
   // ── 라우팅 ────────────────────────────────────────────
 

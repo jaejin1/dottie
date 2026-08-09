@@ -29,7 +29,7 @@ final myTodoListsProvider = AutoDisposeFutureProvider<List<TodoList>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MyTodoListsRef = AutoDisposeFutureProviderRef<List<TodoList>>;
-String _$todoListByIdHash() => r'bc3d8df201fc79e3047db83cde6f961aec789bd2';
+String _$todoListByIdHash() => r'82fdd0f924e0bc324285978c7c7e368077be1d71';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -54,20 +54,32 @@ class _SystemHash {
 
 /// 단일 할일 상세 (items 포함). BE 우선.
 ///
+/// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+/// 않도록 한다 — 내 스팟 목록 오염 방지.
+///
 /// Copied from [todoListById].
 @ProviderFor(todoListById)
 const todoListByIdProvider = TodoListByIdFamily();
 
 /// 단일 할일 상세 (items 포함). BE 우선.
 ///
+/// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+/// 않도록 한다 — 내 스팟 목록 오염 방지.
+///
 /// Copied from [todoListById].
 class TodoListByIdFamily extends Family<AsyncValue<TodoList?>> {
   /// 단일 할일 상세 (items 포함). BE 우선.
+  ///
+  /// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+  /// 않도록 한다 — 내 스팟 목록 오염 방지.
   ///
   /// Copied from [todoListById].
   const TodoListByIdFamily();
 
   /// 단일 할일 상세 (items 포함). BE 우선.
+  ///
+  /// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+  /// 않도록 한다 — 내 스팟 목록 오염 방지.
   ///
   /// Copied from [todoListById].
   TodoListByIdProvider call(String todoListId) {
@@ -98,9 +110,15 @@ class TodoListByIdFamily extends Family<AsyncValue<TodoList?>> {
 
 /// 단일 할일 상세 (items 포함). BE 우선.
 ///
+/// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+/// 않도록 한다 — 내 스팟 목록 오염 방지.
+///
 /// Copied from [todoListById].
 class TodoListByIdProvider extends AutoDisposeFutureProvider<TodoList?> {
   /// 단일 할일 상세 (items 포함). BE 우선.
+  ///
+  /// viewerUid 를 넘겨 "남의 공개 코스"(디스커버리 진입)를 로컬 DB 에 저장하지
+  /// 않도록 한다 — 내 스팟 목록 오염 방지.
   ///
   /// Copied from [todoListById].
   TodoListByIdProvider(String todoListId)
@@ -556,7 +574,7 @@ final selectedTodoListIdProvider =
     );
 
 typedef _$SelectedTodoListId = AsyncNotifier<String?>;
-String _$todoNotifierHash() => r'183033060594fe03bc08849eac21ff3eb781059b';
+String _$todoNotifierHash() => r'2968e9575a757b30489bfb8d472c6beb958df8e9';
 
 /// 할일 CRUD / 체크인 등 변경 작업.
 /// `AsyncValue<void>` 로 로딩/에러 상태 관리.

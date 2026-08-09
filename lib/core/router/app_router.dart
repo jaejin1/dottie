@@ -25,6 +25,7 @@ import '../../features/todo/presentation/course_invite_screen.dart';
 import '../../features/todo/presentation/todo_collection_list_screen.dart';
 import '../../features/todo/presentation/todo_create_screen.dart';
 import '../../features/todo/presentation/todo_edit_screen.dart';
+import '../../features/discover/presentation/discover_screen.dart';
 import '../../features/todo/presentation/todo_map_screen.dart';
 import '../../shared/widgets/main_shell.dart';
 
@@ -418,6 +419,11 @@ final GoRouter appRouter = GoRouter(
               path: AppRoutes.todos,
               builder: (context, state) => const TodoCollectionListScreen(),
               routes: [
+                GoRoute(
+                  // 공개 코스 둘러보기 (Phase 3 디스커버리).
+                  path: 'discover',
+                  builder: (context, state) => const DiscoverScreen(),
+                ),
                 GoRoute(
                   path: 'new',
                   builder: (context, state) => const TodoCreateScreen(),

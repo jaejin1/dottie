@@ -31,6 +31,9 @@ _$DotImpl _$$DotImplFromJson(Map<String, dynamic> json) => _$DotImpl(
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
+  sharedRoomIds: (json['shared_room_ids'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
 );
 
 Map<String, dynamic> _$$DotImplToJson(_$DotImpl instance) => <String, dynamic>{
@@ -52,4 +55,5 @@ Map<String, dynamic> _$$DotImplToJson(_$DotImpl instance) => <String, dynamic>{
   'placeId': instance.placeId,
   'place': instance.place,
   'tags': instance.tags,
+  'shared_room_ids': instance.sharedRoomIds,
 };

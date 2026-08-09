@@ -40,7 +40,7 @@ final allDayLogsProvider = AutoDisposeFutureProvider<List<DayLog>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AllDayLogsRef = AutoDisposeFutureProviderRef<List<DayLog>>;
-String _$activeRecordingHash() => r'e95dc37e61afacb22fb12fc26916f082f77816f1';
+String _$activeRecordingHash() => r'c19e69e8e8840f2518af894830d0666cfc2a4e2f';
 
 /// See also [ActiveRecording].
 @ProviderFor(ActiveRecording)

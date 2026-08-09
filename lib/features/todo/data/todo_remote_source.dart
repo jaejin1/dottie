@@ -67,6 +67,7 @@ class TodoRemoteSource {
     String? description,
     List<String>? tags,
     String? visibility,
+    String? coverImageUrl,
   }) async {
     try {
       final res = await _dio.post(ApiEndpoints.todoLists, data: {
@@ -78,6 +79,7 @@ class TodoRemoteSource {
         if (description != null) 'description': description,
         if (tags != null && tags.isNotEmpty) 'tags': tags,
         if (visibility != null) 'visibility': visibility,
+        if (coverImageUrl != null) 'cover_image_url': coverImageUrl,
       });
       final data = _unwrap(res.data) as Map<String, dynamic>;
       return TodoList.fromJson(data);
@@ -97,6 +99,7 @@ class TodoRemoteSource {
     Object? description = _undef,
     List<String>? tags,
     String? visibility,
+    Object? coverImageUrl = _undef,
   }) async {
     try {
       final body = <String, dynamic>{};
@@ -108,6 +111,9 @@ class TodoRemoteSource {
       if (!identical(description, _undef)) body['description'] = description;
       if (tags != null) body['tags'] = tags;
       if (visibility != null) body['visibility'] = visibility;
+      if (!identical(coverImageUrl, _undef)) {
+        body['cover_image_url'] = coverImageUrl;
+      }
       final res = await _dio.patch(ApiEndpoints.todoListById(id), data: body);
       final data = _unwrap(res.data) as Map<String, dynamic>;
       return TodoList.fromJson(data);
@@ -117,11 +123,13 @@ class TodoRemoteSource {
     }
   }
 
-  Future<TodoList> pinTodoList(String id, {required bool isPinned, required int pinOrder}) async {
+  /// 코스 고정 토글 (per-user). pin_order 는 BE 가 내 고정 MAX+1 로 자동 부여 —
+  /// FE 는 보내지 않는다. 응답은 caller 기준 is_pinned/pin_order.
+  Future<TodoList> pinTodoList(String id, {required bool isPinned}) async {
     try {
       final res = await _dio.patch(
         ApiEndpoints.todoListPin(id),
-        data: {'is_pinned': isPinned, 'pin_order': pinOrder},
+        data: {'is_pinned': isPinned},
       );
       final data = _unwrap(res.data) as Map<String, dynamic>;
       return TodoList.fromJson(data);
@@ -198,7 +206,6 @@ class TodoRemoteSource {
     int? orderInDay,
     Object? notes = _undef,
     Object? emotion = _undef,
-    bool? isPinned,
   }) async {
     try {
       final body = <String, dynamic>{};
@@ -216,12 +223,29 @@ class TodoRemoteSource {
       if (orderInDay != null) body['order_in_day'] = orderInDay;
       if (!identical(notes, _undef)) body['notes'] = notes;
       if (!identical(emotion, _undef)) body['emotion'] = emotion;
-      if (isPinned != null) body['is_pinned'] = isPinned;
-      // ignore: avoid_print
-      if (kDebugMode) print('[TodoRemote.patchItem] body=$body notes=$notes identical=${identical(notes, _undef)}');
+      // 고정(is_pinned)은 일반 편집에 싣지 않는다 — per-user 전용 [pinTodoItem].
       final res = await _dio.patch(
         ApiEndpoints.todoItemById(todoListId, itemId),
         data: body,
+      );
+      final data = _unwrap(res.data) as Map<String, dynamic>;
+      return TodoItem.fromJson(data);
+    } on DioException catch (e) {
+      _throwIfBusinessError(e);
+      rethrow;
+    }
+  }
+
+  /// 항목 고정 토글 (per-user). 개인 뷰라 viewer 도 가능. 순서는 BE 계산.
+  Future<TodoItem> pinTodoItem(
+    String todoListId,
+    String itemId, {
+    required bool isPinned,
+  }) async {
+    try {
+      final res = await _dio.patch(
+        ApiEndpoints.todoItemPin(todoListId, itemId),
+        data: {'is_pinned': isPinned},
       );
       final data = _unwrap(res.data) as Map<String, dynamic>;
       return TodoItem.fromJson(data);
@@ -412,6 +436,80 @@ class TodoRemoteSource {
     }
   }
 
+  // ── 좋아요 (Phase 2) ─────────────────────────────────────
+
+  /// 좋아요 등록/취소 (멱등). [like] true → POST, false → DELETE.
+  /// 응답 `{ like_count, liked_by_me }`. 비공개+비멤버 → COURSE_NOT_PUBLIC(403).
+  Future<({int likeCount, bool likedByMe})> setLike(
+      String todoListId, bool like) async {
+    try {
+      final path = ApiEndpoints.todoListLike(todoListId);
+      final res = like ? await _dio.post(path) : await _dio.delete(path);
+      final data = _unwrap(res.data) as Map<String, dynamic>;
+      return (
+        likeCount: (data['like_count'] as num?)?.toInt() ?? 0,
+        likedByMe: data['liked_by_me'] as bool? ?? like,
+      );
+    } on DioException catch (e) {
+      _throwIfBusinessError(e);
+      rethrow;
+    }
+  }
+
+  /// 커버 사진 설정/해제 — 전용 엔드포인트. [coverImageUrl] null → 해제.
+  /// 업로드 시 같은 코스로 발급받은 R2 public_url 이어야 함(아니면 403/400).
+  Future<TodoList> setCover(String todoListId, String? coverImageUrl) async {
+    try {
+      final res = await _dio.patch(
+        ApiEndpoints.todoListCover(todoListId),
+        data: {'cover_image_url': coverImageUrl},
+      );
+      final data = _unwrap(res.data) as Map<String, dynamic>;
+      return TodoList.fromJson(data);
+    } on DioException catch (e) {
+      _throwIfBusinessError(e);
+      rethrow;
+    }
+  }
+
+  // ── 가져오기(복제) / 신고 (Phase 3) ─────────────────────
+
+  /// 공개 코스를 내 소유 private 코스로 복제(items 포함, 체크인 제외).
+  /// 비공개+비멤버 → COURSE_NOT_PUBLIC(403).
+  Future<TodoList> cloneCourse(String todoListId, {String? name}) async {
+    try {
+      final res = await _dio.post(
+        ApiEndpoints.todoListClone(todoListId),
+        data: name != null ? {'name': name} : null,
+      );
+      final data = _unwrap(res.data) as Map<String, dynamic>;
+      return TodoList.fromJson(data);
+    } on DioException catch (e) {
+      _throwIfBusinessError(e);
+      rethrow;
+    }
+  }
+
+  /// 공개 코스 신고. 재신고는 서버가 no-op 200 으로 dedupe.
+  Future<void> reportCourse(
+    String todoListId, {
+    required String reason,
+    String? detail,
+  }) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.todoListReport(todoListId),
+        data: {
+          'reason': reason,
+          if (detail != null && detail.trim().isNotEmpty) 'detail': detail.trim(),
+        },
+      );
+    } on DioException catch (e) {
+      _throwIfBusinessError(e);
+      rethrow;
+    }
+  }
+
   // ── 룸 연결 ────────────────────────────────────────────
 
   /// PATCH /todo-lists/:id/room — null이면 연결 해제.
@@ -507,6 +605,10 @@ class TodoApiException implements Exception {
       code == 'TODO_ITEM_NOT_FOUND';
   bool get isForbidden => statusCode == 403 || code == 'FORBIDDEN';
   bool get isAlreadyCheckedIn => code == 'ALREADY_CHECKED_IN';
+  // Phase 2 — 공개/좋아요.
+  bool get isCourseNotPublic => code == 'COURSE_NOT_PUBLIC';
+  bool get isNotCourseOwner => code == 'NOT_COURSE_OWNER';
+  bool get isInvalidCoverUrl => code == 'INVALID_COVER_URL';
   bool get isRateLimited =>
       statusCode == 429 || code == 'RATE_LIMIT_EXCEEDED';
   bool get isDateRangeTooLong => code == 'DATE_RANGE_TOO_LONG';
@@ -516,6 +618,9 @@ class TodoApiException implements Exception {
   @override
   String toString() {
     if (isAlreadyCheckedIn) return '이미 다녀온 스팟이에요';
+    if (isCourseNotPublic) return '비공개 코스예요';
+    if (isNotCourseOwner) return '코스 소유자만 공개 설정을 바꿀 수 있어요';
+    if (isInvalidCoverUrl) return '커버 이미지를 다시 업로드해 주세요';
     if (isForbidden) return '권한이 없어요';
     if (isNotFound) return '대상을 찾을 수 없어요';
     if (isRateLimited) return '요청이 너무 잦아요. 잠시 후 다시 시도해 주세요';

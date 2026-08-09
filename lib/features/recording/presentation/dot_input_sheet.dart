@@ -16,6 +16,7 @@ import '../../character/paperdoll/presentation/paperdoll_provider.dart';
 import '../../feed/domain/feed_entry.dart';
 import '../../feed/presentation/feed_provider.dart';
 import '../../feed/presentation/feed_local_photo_store.dart';
+import '../../room/domain/room_model.dart';
 import '../../room/presentation/room_provider.dart';
 import '../../timeline/presentation/timeline_provider.dart';
 import '../../search/presentation/tag_search_provider.dart';
@@ -56,6 +57,18 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
   String? _photoPath;
   Place? _selectedPlace; // B8 — 사용자가 검색해서 선택한 장소
   bool _isSaving = false;
+
+  /// 공유할 방 선택. null = 아직 사용자가 안 건드림(= auto_share 기본값 사용).
+  /// 사용자가 칩을 처음 탭하면 그 시점 effective 집합으로 초기화 후 토글한다.
+  Set<String>? _selectedRoomIds;
+
+  /// auto_share 켜진 방 id — 기본 pre-check 대상.
+  Set<String> _autoShareRoomIds(List<Room> rooms) =>
+      {for (final r in rooms) if (r.autoShare) r.id};
+
+  /// 현재 실효 선택 집합 (사용자 미변경 시 auto_share 기본값).
+  Set<String> _effectiveRoomIds(List<Room> rooms) =>
+      _selectedRoomIds ?? _autoShareRoomIds(rooms);
 
   @override
   void dispose() {
@@ -239,6 +252,10 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
           )
               .animate()
               .fadeIn(duration: 280.ms, delay: 300.ms),
+
+          // 공유할 방 선택 — 방에 소속돼 있을 때만 노출. 미선택(전부 해제) = 개인 dot.
+          _buildRoomSelector(),
+
           const SizedBox(height: Dimensions.lg),
 
           // 저장 버튼 — 60초 rate limit 안에 있으면 disable + countdown.
@@ -330,6 +347,53 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
     }
   }
 
+  /// 공유할 방 선택 UI. 방 미소속이면 숨김. auto_share 방이 기본 선택.
+  Widget _buildRoomSelector() {
+    final rooms = ref.watch(roomListProvider).valueOrNull ?? const <Room>[];
+    if (rooms.isEmpty) return const SizedBox.shrink();
+    final effective = _effectiveRoomIds(rooms);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Dimensions.md),
+        Row(
+          children: [
+            Text('어디에 올릴까요?',
+                style: GoogleFonts.notoSansKr(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: DottieColors.textPrimary)),
+            const SizedBox(width: 6),
+            Text(effective.isEmpty ? '나만 보기' : '${effective.length}개 방',
+                style: GoogleFonts.notoSansKr(
+                    fontSize: 12, color: DottieColors.textHint)),
+          ],
+        ),
+        const SizedBox(height: Dimensions.sm),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final r in rooms)
+              _RoomChip(
+                label: r.name,
+                selected: effective.contains(r.id),
+                onTap: () => _toggleRoom(rooms, r.id),
+              ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(duration: 280.ms, delay: 320.ms);
+  }
+
+  void _toggleRoom(List<Room> rooms, String roomId) {
+    setState(() {
+      final next = {..._effectiveRoomIds(rooms)};
+      if (!next.remove(roomId)) next.add(roomId);
+      _selectedRoomIds = next;
+    });
+  }
+
   Future<void> _saveDot() async {
     // pop 후에도 SnackBar 가 안전히 뜨도록 root ScaffoldMessenger 를 미리 확보.
     // (시트 dismiss 후 시트 context 는 deactivated.)
@@ -389,7 +453,8 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
           authorNickname: me.nickname,
           authorColorHex: colorHex,
           isMine: true,
-          sharedRoomIds: const {},
+          // 서버가 돌려준 실제 공유 방(없으면 빈 집합 = 개인).
+          sharedRoomIds: captured.dot!.sharedRoomIds?.toSet() ?? const {},
         );
         // 전체 피드(null) 인스턴스에 즉시 삽입. room 필터 인스턴스는 서버 refresh 시 반영.
         ref
@@ -438,6 +503,14 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
       final memo = _memoController.text.trim();
       // 태그는 메모 본문에서 #토큰 정규식 추출 후 정규화. 메모 원문은 그대로 보존.
       final tags = TagParser.extractFromText(memo);
+      // 방 선택 — **사용자가 칩을 실제로 건드렸을 때만** 명시 전송.
+      //   - 미소속 / 미변경 → null(생략) → BE 기본(auto_share + 날짜공유) 유지
+      //     (하위호환: 안 건드리면 지금 동작 그대로. 날짜공유 B13 도 안 깨짐).
+      //   - 변경 → 실효 선택 명시([]=개인, [ids]=특정 방, auto_share 무시).
+      final rooms = ref.read(roomListProvider).valueOrNull ?? const <Room>[];
+      final roomIds = (rooms.isEmpty || _selectedRoomIds == null)
+          ? null
+          : _selectedRoomIds!.toList();
       final res =
           await ref.read(activeRecordingProvider.notifier).captureDot(
                 memo: memo.isEmpty ? null : memo,
@@ -449,6 +522,7 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
                 placeOverride: _selectedPlace,
                 overrideDistanceCheck: overrideDistance,
                 tags: tags,
+                roomIds: roomIds,
               );
       return _CaptureOutcome.captured(res);
     } on LocationException catch (e) {
@@ -499,6 +573,9 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
       'INVALID_TAG_FORMAT' => '태그 형식이 올바르지 않아요',
       'TAGS_TOO_MANY' => '태그는 최대 10개까지만 가능해요',
       'INVALID_TIMESTAMP' => '시간 정보가 잘못됐어요. 다시 시도해 주세요',
+      // 비멤버 방은 BE 가 조용히 제외(드롭)하므로 NOT_ROOM_MEMBER 는 오지 않음.
+      // INVALID_ROOM_ID(형식 오류, 클라 버그)만 400 으로 옴.
+      'INVALID_ROOM_ID' => '방 정보가 올바르지 않아요. 다시 시도해 주세요',
       _ => e.message ?? 'dot 저장에 실패했어요',
     };
     messenger.showSnackBar(SnackBar(content: Text(msg)));
@@ -539,6 +616,63 @@ class _DotInputSheetState extends ConsumerState<DotInputSheet> {
 /// 장소/사진 가로 2분할 picker 버튼.
 /// - 미선택: outline 만, primary 색.
 /// - 선택됨: 살짝 fill + 우측에 X 아이콘 (탭 시 onClear).
+/// 방 선택 토글 칩 — 선택 시 primary 채움 + 체크.
+class _RoomChip extends StatelessWidget {
+  const _RoomChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? DottieColors.primary.withValues(alpha: 0.12)
+              : DottieColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? DottieColors.primary : DottieColors.border,
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.circle_outlined,
+              size: 16,
+              color: selected ? DottieColors.primary : DottieColors.textHint,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.notoSansKr(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected
+                    ? DottieColors.primary
+                    : DottieColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PickerButton extends StatelessWidget {
   const _PickerButton({
     required this.icon,

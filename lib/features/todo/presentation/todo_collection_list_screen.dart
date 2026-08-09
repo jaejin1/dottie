@@ -56,6 +56,12 @@ class _TodoCollectionListScreenState
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.explore_outlined,
+                color: DottieColors.textSecondary, size: 22),
+            tooltip: '둘러보기',
+            onPressed: () => context.push('/todos/discover'),
+          ),
+          IconButton(
             icon: const Icon(Icons.add_rounded,
                 color: DottieColors.textSecondary, size: 22),
             tooltip: '새 코스',

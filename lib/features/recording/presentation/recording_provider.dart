@@ -103,6 +103,9 @@ class ActiveRecording extends _$ActiveRecording {
     Place? placeOverride,
     bool overrideDistanceCheck = false, // confirm 후 재호출 시 true
     List<String> tags = const [],
+    /// 이 dot 을 공유할 방 선택. null=미지정(auto_share) / []=개인 / [ids]=특정 방.
+    /// 시트에서만 전달 — 체크인·BG 자동 dot 은 생략(null → auto_share).
+    List<String>? roomIds,
   }) async {
     final session = state.valueOrNull;
     final isFirst = session == null;
@@ -186,6 +189,7 @@ class ActiveRecording extends _$ActiveRecording {
         // dot_content_block 의 장소 카드가 즉시 표시되게 client-side 에서 inline.
         place: placeOverride,
         tags: tags,
+        sharedRoomIds: roomIds,
       );
 
       final saveResult = await repo.saveDot(dot, userId: userId);
@@ -199,6 +203,8 @@ class ActiveRecording extends _$ActiveRecording {
       final savedDot = dot.copyWith(
         id: saveResult.serverDotId ?? dot.id,
         dayLogId: effectiveDayLogId,
+        // 온라인이면 서버가 돌려준 실제 공유 방 목록으로 갱신 (없으면 선택값 유지).
+        sharedRoomIds: saveResult.sharedRoomIds ?? roomIds,
       );
       debugPrint(
           '[captureDot] savedDot id=${savedDot.id} placeId=${savedDot.placeId}');

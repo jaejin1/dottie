@@ -20,6 +20,7 @@ import '../../../shared/utils/error_messages.dart';
 import '../../../shared/widgets/dot_detail_sheet.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../discover/presentation/widgets/trending_courses_rail.dart';
 import '../../feed/domain/feed_entry.dart';
 import '../../feed/feed_config.dart';
 import '../../feed/presentation/feed_provider.dart';
@@ -348,6 +349,10 @@ class _FeedViewState extends ConsumerState<_FeedView> {
               hasMore: state.hasMore,
               isLoadingMore: state.isLoadingMore,
               scrollController: _scrollController,
+              // 트렌딩 코스 레일 — "전체" 필터일 때만(방 필터 중엔 맥락 오염 방지).
+              leading: _selectedRoomId == null
+                  ? const TrendingCoursesRail()
+                  : null,
               onRefresh: () async {
                 HapticFeedback.lightImpact();
                 ref.invalidate(feedNotifierProvider(_selectedRoomId));
@@ -415,6 +420,7 @@ class _FeedList extends StatelessWidget {
     required this.scrollController,
     required this.onRefresh,
     required this.onTapEntry,
+    this.leading,
   });
 
   final List<FeedEntry> entries;
@@ -424,6 +430,9 @@ class _FeedList extends StatelessWidget {
   final ScrollController scrollController;
   final Future<void> Function() onRefresh;
   final void Function(FeedEntry) onTapEntry;
+
+  /// 피드 리스트 최상단에 스크롤과 함께 딸려 올라가는 선택적 헤더(트렌딩 레일).
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -435,7 +444,9 @@ class _FeedList extends StatelessWidget {
           controller: scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            const SizedBox(height: 120),
+            // 활동이 없는 초기 사용자에겐 트렌딩 레일이 홈의 히어로가 된다.
+            if (leading != null) leading!,
+            SizedBox(height: leading != null ? 40 : 120),
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -490,8 +501,9 @@ class _FeedList extends StatelessWidget {
       );
     }
 
-    // 마지막에 footer 1칸 추가 — hasMore 면 로딩 인디케이터, 끝이면 안내.
-    final itemCount = entries.length + 1;
+    // leading(트렌딩 레일) 1칸 + 카드들 + footer 1칸.
+    final int lead = leading != null ? 1 : 0;
+    final itemCount = lead + entries.length + 1;
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -502,7 +514,10 @@ class _FeedList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: Dimensions.sm),
         itemCount: itemCount,
         separatorBuilder: (_, i) {
-          if (i == entries.length - 1) return const SizedBox.shrink();
+          // 레일과 첫 카드 사이엔 divider 대신 여백.
+          if (lead == 1 && i == 0) return const SizedBox(height: 8);
+          // footer 바로 앞(마지막 카드 뒤)엔 divider 없음.
+          if (i == lead + entries.length - 1) return const SizedBox.shrink();
           return const Divider(
             height: 1,
             thickness: 1,
@@ -510,16 +525,18 @@ class _FeedList extends StatelessWidget {
           );
         },
         itemBuilder: (_, i) {
-          if (i == entries.length) {
+          if (lead == 1 && i == 0) return leading!;
+          final e = i - lead;
+          if (e == entries.length) {
             return _FeedFooter(
               hasMore: hasMore,
               isLoadingMore: isLoadingMore,
             );
           }
           return FeedCard(
-            entry: entries[i],
+            entry: entries[e],
             roomNameById: roomById,
-            onTap: () => onTapEntry(entries[i]),
+            onTap: () => onTapEntry(entries[e]),
           );
         },
       ),

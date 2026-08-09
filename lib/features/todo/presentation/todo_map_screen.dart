@@ -65,6 +65,12 @@ class _TodoMapScreenState extends ConsumerState<TodoMapScreen> {
     final uid = ref.watch(currentDottieUserProvider).valueOrNull?.uid;
     final canEdit = list?.canEdit(uid) ?? true;
     final isOwner = list != null && uid != null && list.ownerId == uid;
+    final isMember = list != null &&
+        uid != null &&
+        list.members.any((m) => m.userId == uid);
+    // 디스커버리로 연 남의 공개 코스 — 내가 owner/member 가 아닌 public 코스.
+    final isPublicVisitor =
+        list != null && list.isPublic && !isOwner && !isMember;
 
     // 코스 편집으로 기간이 단축된 경우 선택된 Day가 범위를 벗어날 수 있음.
     if (list != null && _selectedDay >= list.totalDays) {
@@ -119,10 +125,18 @@ class _TodoMapScreenState extends ConsumerState<TodoMapScreen> {
                       ],
                     ),
                   ),
+                  if (list.isPublic) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.public_rounded,
+                        size: 15,
+                        color: DottieColors.primary.withValues(alpha: 0.7)),
+                  ],
                 ],
               ),
         centerTitle: false,
         actions: [
+          // 좋아요는 둘러보기 카드에서만 누른다(인스타 방식) — 관리 화면인
+          // 상세엔 좋아요 버튼을 두지 않음. 공개 상태는 제목 옆 🌐 로만 표시.
           // 초대 버튼 — owner 만 노출
           if (isOwner)
             IconButton(
@@ -142,15 +156,23 @@ class _TodoMapScreenState extends ConsumerState<TodoMapScreen> {
             tooltip: _showList ? '지도 보기' : '리스트 보기',
             onPressed: () => setState(() => _showList = !_showList),
           ),
-          if (list != null)
+          // 설정 — owner=편집, member=나가기. 남의 공개 코스(비멤버)엔 미노출.
+          if (isOwner)
             IconButton(
               icon: const Icon(Icons.settings_outlined,
                   color: DottieColors.textSecondary, size: 22),
-              tooltip: isOwner ? '코스 편집' : '코스 나가기',
-              onPressed: isOwner
-                  ? () => context.push('/todos/${list.id}/edit')
-                  : () => _confirmLeave(context, list),
+              tooltip: '코스 편집',
+              onPressed: () => context.push('/todos/${list.id}/edit'),
+            )
+          else if (list != null && isMember)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined,
+                  color: DottieColors.textSecondary, size: 22),
+              tooltip: '코스 나가기',
+              onPressed: () => _confirmLeave(context, list),
             ),
+          // 남의 공개 코스 — 가져오기 + 신고(⋯).
+          if (isPublicVisitor) _PublicVisitorActions(list: list),
           const SizedBox(width: 4),
         ],
         bottom: list != null && list.isTrip
@@ -265,6 +287,149 @@ class _TodoMapScreenState extends ConsumerState<TodoMapScreen> {
         );
       }
     }
+  }
+}
+
+/// 남의 공개 코스 방문자용 액션 — "가져오기"(clone) + ⋯ 신고.
+class _PublicVisitorActions extends ConsumerStatefulWidget {
+  const _PublicVisitorActions({required this.list});
+  final TodoList list;
+
+  @override
+  ConsumerState<_PublicVisitorActions> createState() =>
+      _PublicVisitorActionsState();
+}
+
+class _PublicVisitorActionsState
+    extends ConsumerState<_PublicVisitorActions> {
+  bool _cloning = false;
+
+  Future<void> _clone() async {
+    if (_cloning) return;
+    setState(() => _cloning = true);
+    try {
+      final newId = await ref
+          .read(todoNotifierProvider.notifier)
+          .cloneCourse(widget.list.id);
+      if (!mounted) return;
+      setState(() => _cloning = false);
+      if (newId == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('내 스팟으로 가져왔어요')),
+      );
+      context.push('/todos/$newId');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cloning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userMessageFor(e))),
+      );
+    }
+  }
+
+  Future<void> _report() async {
+    // BE 는 reason 을 자유 텍스트(≤100자)로 저장 — 모더레이터가 읽을 한글 라벨을
+    // 그대로 전송한다(enum 코드 아님).
+    const reasons = <String>[
+      '스팸/광고',
+      '부적절한 콘텐츠',
+      '저작권 침해',
+      '기타',
+    ];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: DottieColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text('신고 사유', style: AppTypography.tabHeader()),
+            const SizedBox(height: 8),
+            for (final label in reasons)
+              ListTile(
+                title: Text(label,
+                    style: GoogleFonts.notoSansKr(fontSize: 14)),
+                onTap: () => Navigator.pop(sheetCtx, label),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    try {
+      await ref
+          .read(todoNotifierProvider.notifier)
+          .reportCourse(widget.list.id, reason: picked);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('신고가 접수되었어요')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userMessageFor(e))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 가져오기
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Material(
+            color: DottieColors.primary,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              onTap: _cloning ? null : _clone,
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_cloning)
+                      const SizedBox(
+                        width: 13,
+                        height: 13,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    else
+                      const Icon(Icons.download_rounded,
+                          size: 15, color: Colors.white),
+                    const SizedBox(width: 4),
+                    const Text(
+                      '가져오기',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.more_vert_rounded,
+              color: DottieColors.textSecondary, size: 20),
+          tooltip: '더보기',
+          onPressed: _report,
+        ),
+      ],
+    );
   }
 }
 

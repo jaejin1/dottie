@@ -64,7 +64,15 @@ mixin _$TodoList {
   @JsonKey(name: 'is_pinned')
   bool get isPinned => throw _privateConstructorUsedError;
   @JsonKey(name: 'pin_order')
-  int get pinOrder => throw _privateConstructorUsedError;
+  int get pinOrder => throw _privateConstructorUsedError; // Phase 2 — 공개/좋아요. BE 계산값.
+  //   likeCount: 좋아요 수. likedByMe: 현재 유저 좋아요 여부(비인증 공개 조회 시 false).
+  //   region: 대표 지역(Phase 2 에선 항상 null, Phase 3 에서 채워짐 — 표시 전용).
+  @JsonKey(name: 'like_count', defaultValue: 0)
+  int get likeCount => throw _privateConstructorUsedError;
+  @JsonKey(name: 'liked_by_me', defaultValue: false)
+  bool get likedByMe => throw _privateConstructorUsedError;
+  @JsonKey(name: 'region')
+  String? get region => throw _privateConstructorUsedError;
 
   /// Serializes this TodoList to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -106,6 +114,9 @@ abstract class $TodoListCopyWith<$Res> {
     @JsonKey(name: 'room_id') String? roomId,
     @JsonKey(name: 'is_pinned') bool isPinned,
     @JsonKey(name: 'pin_order') int pinOrder,
+    @JsonKey(name: 'like_count', defaultValue: 0) int likeCount,
+    @JsonKey(name: 'liked_by_me', defaultValue: false) bool likedByMe,
+    @JsonKey(name: 'region') String? region,
   });
 }
 
@@ -148,6 +159,9 @@ class _$TodoListCopyWithImpl<$Res, $Val extends TodoList>
     Object? roomId = freezed,
     Object? isPinned = null,
     Object? pinOrder = null,
+    Object? likeCount = null,
+    Object? likedByMe = null,
+    Object? region = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -247,6 +261,18 @@ class _$TodoListCopyWithImpl<$Res, $Val extends TodoList>
                 ? _value.pinOrder
                 : pinOrder // ignore: cast_nullable_to_non_nullable
                       as int,
+            likeCount: null == likeCount
+                ? _value.likeCount
+                : likeCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+            likedByMe: null == likedByMe
+                ? _value.likedByMe
+                : likedByMe // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            region: freezed == region
+                ? _value.region
+                : region // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -287,6 +313,9 @@ abstract class _$$TodoListImplCopyWith<$Res>
     @JsonKey(name: 'room_id') String? roomId,
     @JsonKey(name: 'is_pinned') bool isPinned,
     @JsonKey(name: 'pin_order') int pinOrder,
+    @JsonKey(name: 'like_count', defaultValue: 0) int likeCount,
+    @JsonKey(name: 'liked_by_me', defaultValue: false) bool likedByMe,
+    @JsonKey(name: 'region') String? region,
   });
 }
 
@@ -328,6 +357,9 @@ class __$$TodoListImplCopyWithImpl<$Res>
     Object? roomId = freezed,
     Object? isPinned = null,
     Object? pinOrder = null,
+    Object? likeCount = null,
+    Object? likedByMe = null,
+    Object? region = freezed,
   }) {
     return _then(
       _$TodoListImpl(
@@ -427,6 +459,18 @@ class __$$TodoListImplCopyWithImpl<$Res>
             ? _value.pinOrder
             : pinOrder // ignore: cast_nullable_to_non_nullable
                   as int,
+        likeCount: null == likeCount
+            ? _value.likeCount
+            : likeCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+        likedByMe: null == likedByMe
+            ? _value.likedByMe
+            : likedByMe // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        region: freezed == region
+            ? _value.region
+            : region // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -464,6 +508,9 @@ class _$TodoListImpl implements _TodoList {
     @JsonKey(name: 'room_id') this.roomId,
     @JsonKey(name: 'is_pinned') this.isPinned = false,
     @JsonKey(name: 'pin_order') this.pinOrder = 0,
+    @JsonKey(name: 'like_count', defaultValue: 0) this.likeCount = 0,
+    @JsonKey(name: 'liked_by_me', defaultValue: false) this.likedByMe = false,
+    @JsonKey(name: 'region') this.region,
   }) : _items = items,
        _tags = tags,
        _members = members;
@@ -567,10 +614,22 @@ class _$TodoListImpl implements _TodoList {
   @override
   @JsonKey(name: 'pin_order')
   final int pinOrder;
+  // Phase 2 — 공개/좋아요. BE 계산값.
+  //   likeCount: 좋아요 수. likedByMe: 현재 유저 좋아요 여부(비인증 공개 조회 시 false).
+  //   region: 대표 지역(Phase 2 에선 항상 null, Phase 3 에서 채워짐 — 표시 전용).
+  @override
+  @JsonKey(name: 'like_count', defaultValue: 0)
+  final int likeCount;
+  @override
+  @JsonKey(name: 'liked_by_me', defaultValue: false)
+  final bool likedByMe;
+  @override
+  @JsonKey(name: 'region')
+  final String? region;
 
   @override
   String toString() {
-    return 'TodoList(id: $id, ownerId: $ownerId, name: $name, coverEmoji: $coverEmoji, startDate: $startDate, endDate: $endDate, items: $items, shareToken: $shareToken, shareTokenExpiresAt: $shareTokenExpiresAt, createdAt: $createdAt, updatedAt: $updatedAt, synced: $synced, courseType: $courseType, description: $description, tags: $tags, coverImageUrl: $coverImageUrl, visibility: $visibility, isImported: $isImported, members: $members, inviteCode: $inviteCode, inviteCodeExpiresAt: $inviteCodeExpiresAt, roomId: $roomId, isPinned: $isPinned, pinOrder: $pinOrder)';
+    return 'TodoList(id: $id, ownerId: $ownerId, name: $name, coverEmoji: $coverEmoji, startDate: $startDate, endDate: $endDate, items: $items, shareToken: $shareToken, shareTokenExpiresAt: $shareTokenExpiresAt, createdAt: $createdAt, updatedAt: $updatedAt, synced: $synced, courseType: $courseType, description: $description, tags: $tags, coverImageUrl: $coverImageUrl, visibility: $visibility, isImported: $isImported, members: $members, inviteCode: $inviteCode, inviteCodeExpiresAt: $inviteCodeExpiresAt, roomId: $roomId, isPinned: $isPinned, pinOrder: $pinOrder, likeCount: $likeCount, likedByMe: $likedByMe, region: $region)';
   }
 
   @override
@@ -616,7 +675,12 @@ class _$TodoListImpl implements _TodoList {
             (identical(other.isPinned, isPinned) ||
                 other.isPinned == isPinned) &&
             (identical(other.pinOrder, pinOrder) ||
-                other.pinOrder == pinOrder));
+                other.pinOrder == pinOrder) &&
+            (identical(other.likeCount, likeCount) ||
+                other.likeCount == likeCount) &&
+            (identical(other.likedByMe, likedByMe) ||
+                other.likedByMe == likedByMe) &&
+            (identical(other.region, region) || other.region == region));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -647,6 +711,9 @@ class _$TodoListImpl implements _TodoList {
     roomId,
     isPinned,
     pinOrder,
+    likeCount,
+    likedByMe,
+    region,
   ]);
 
   /// Create a copy of TodoList
@@ -693,6 +760,9 @@ abstract class _TodoList implements TodoList {
     @JsonKey(name: 'room_id') final String? roomId,
     @JsonKey(name: 'is_pinned') final bool isPinned,
     @JsonKey(name: 'pin_order') final int pinOrder,
+    @JsonKey(name: 'like_count', defaultValue: 0) final int likeCount,
+    @JsonKey(name: 'liked_by_me', defaultValue: false) final bool likedByMe,
+    @JsonKey(name: 'region') final String? region,
   }) = _$TodoListImpl;
 
   factory _TodoList.fromJson(Map<String, dynamic> json) =
@@ -764,7 +834,18 @@ abstract class _TodoList implements TodoList {
   bool get isPinned;
   @override
   @JsonKey(name: 'pin_order')
-  int get pinOrder;
+  int get pinOrder; // Phase 2 — 공개/좋아요. BE 계산값.
+  //   likeCount: 좋아요 수. likedByMe: 현재 유저 좋아요 여부(비인증 공개 조회 시 false).
+  //   region: 대표 지역(Phase 2 에선 항상 null, Phase 3 에서 채워짐 — 표시 전용).
+  @override
+  @JsonKey(name: 'like_count', defaultValue: 0)
+  int get likeCount;
+  @override
+  @JsonKey(name: 'liked_by_me', defaultValue: false)
+  bool get likedByMe;
+  @override
+  @JsonKey(name: 'region')
+  String? get region;
 
   /// Create a copy of TodoList
   /// with the given fields replaced by the non-null parameter values.

@@ -36,6 +36,12 @@ class DotTable extends Table {
   // 정규화된 해시태그 — JSON 직렬화 (예: `["회의","피곤"]`).
   // 검색은 본인 dot 단위라 N 작음 → JSON LIKE 로 충분.
   TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
+  // 방 공유 선택 — JSON 배열 or null. (v9)
+  //   null      → 미지정(생략). BE auto_share 자동 공유.
+  //   '[]'      → 개인 dot(어디에도 안 올림).
+  //   '["id"]'  → 지정한 방에만 공유.
+  // 오프라인 dot 이 batch sync 시 선택을 기억하도록 영속.
+  TextColumn get sharedRoomIdsJson => text().nullable()();
   BoolColumn get synced =>
       boolean().withDefault(const Constant(false))();
 
@@ -93,6 +99,10 @@ class TodoListTable extends Table {
   BoolColumn get isPinned =>
       boolean().withDefault(const Constant(false))();
   IntColumn get pinOrder => integer().withDefault(const Constant(0))();
+  // v14 — 공개/좋아요 (Phase 2). likeCount·region 은 BE 계산값 캐시.
+  // likedByMe 는 사용자별 transient 라 영속하지 않음(상세 화면이 원격 직접 반환).
+  IntColumn get likeCount => integer().withDefault(const Constant(0))();
+  TextColumn get region => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -142,7 +152,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -204,8 +214,44 @@ class AppDatabase extends _$AppDatabase {
           if (from < 12) {
             await m.alterTable(TableMigration(todoItemTable));
           }
+          // v13 — DotTable.sharedRoomIdsJson (dot 별 방 공유 선택 영속).
+          if (from < 13) {
+            await m.addColumn(dotTable, dotTable.sharedRoomIdsJson);
+          }
+          // v14 — TodoListTable: likeCount / region (Phase 2 공개·좋아요 캐시).
+          // 개발 중 onCreate 로 컬럼이 먼저 생성됐는데 버전이 어긋난 기기에서
+          // "duplicate column" 으로 마이그레이션 전체가 실패 → DB 오픈 불가 →
+          // 앱 전체가 죽는 사고가 있었음. addColumn 을 멱등하게 처리한다.
+          if (from < 14) {
+            await _addColumnIfMissing(m, todoListTable, todoListTable.likeCount);
+            await _addColumnIfMissing(m, todoListTable, todoListTable.region);
+          }
         },
       );
+
+  /// [Migrator.addColumn] 멱등 래퍼 — 컬럼이 이미 있으면 skip.
+  ///
+  /// 개발 중 onCreate 로 컬럼이 먼저 생성됐는데 stored version 이 어긋난 기기에서
+  /// v14 마이그레이션이 그 컬럼을 다시 추가하려다 "duplicate column" 으로 터져
+  /// **DB 오픈 자체가 막히고 로컬 DB 를 쓰는 모든 화면이 죽는** 사고가 있었다.
+  ///
+  /// ADD 를 시도하고 예외를 잡는 방식은 drift isolate 경계에서 SqliteException 이
+  /// DriftRemoteException 으로 감싸져 타입 catch 가 새므로 쓰지 않는다. 대신
+  /// PRAGMA 로 존재를 먼저 확인 — 래핑/버전과 무관하게 확실하다. (마이그레이션
+  /// 중 쿼리는 `_backfillTagsJson` 선례대로 안전.)
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    final rows = await customSelect(
+      "PRAGMA table_info('${table.actualTableName}')",
+    ).get();
+    final exists = rows.any((r) => r.data['name'] == column.$name);
+    if (exists) {
+      debugPrint(
+          '[DB] ${table.actualTableName}.${column.$name} exists — skip addColumn');
+      return;
+    }
+    await m.addColumn(table, column);
+  }
 
   /// 로그아웃/회원탈퇴 시 로컬 DB 전체 삭제.
   ///

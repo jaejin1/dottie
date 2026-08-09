@@ -3,21 +3,23 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/typography.dart';
 import '../../../core/router/app_router.dart';
 import '../../map_animation/data/sprite_sheet_loader.dart';
+import '../../notification/data/push_notification_service.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   List<Uint8List>? _frames;
   int _frameIdx = 0;
   Timer? _frameTimer;
@@ -48,7 +50,24 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
     final user = FirebaseAuth.instance.currentUser;
-    context.go(user != null ? AppRoutes.home : AppRoutes.onboarding);
+    // terminated 상태에서 푸쉬 탭으로 앱이 시작됐는지 — 인증 여부와 무관하게
+    // 소비해 비워둔다 (미인증이면 그냥 버림).
+    final pendingTap =
+        ref.read(pushNotificationServiceProvider).consumePendingInitialTap();
+
+    if (user == null) {
+      context.go(AppRoutes.onboarding);
+      return;
+    }
+
+    context.go(AppRoutes.home);
+    // 푸쉬 탭으로 시작됐으면 홈을 베이스로 깔고 그 위에 해당 dot 지도를 얹는다
+    // (뒤로가기 시 홈으로 자연 복귀). 홈이 mount 된 다음 frame 에 push.
+    if (pendingTap != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(pushNotificationServiceProvider).handleTapData(pendingTap);
+      });
+    }
   }
 
   Future<void> _loadFrames(String path) async {

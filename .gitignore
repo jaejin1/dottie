@@ -50,3 +50,15 @@ app.*.map.json
 # 로컬 빌드 시크릿 (API 키, 기기 ID)
 .env
 .env.local
+
+# 에이전트/툴링 로컬 디렉토리 (개인 작업 환경)
+.agents/
+.codex/
+
+# 루트 개인 이미지/스크린샷 (커밋 금지 — 앱 에셋은 assets/ 하위)
+/*.png
+/*.jpg
+/*.jpeg
+/*.JPG
+/*.JPEG
+/*.PNG

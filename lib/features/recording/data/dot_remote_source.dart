@@ -1,11 +1,10 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/media/media_upload_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/image_compress.dart';
 import '../domain/dot_model.dart';
 import '../../timeline/domain/day_log_model.dart';
 import 'dot_api_parser.dart';
@@ -16,85 +15,18 @@ class DotRemoteSource {
   DotRemoteSource(this._dio);
   final Dio _dio;
 
-  Future<String?> uploadPhoto(String filePath) async {
-    try {
-      // 업로드 전 압축 — 최대 1080px / JPEG 82%. 실패 시 원본 사용.
-      final uploadPath = await ImageCompress.forUpload(filePath);
-      final file = File(uploadPath);
-      final fileSize = await file.length();
-      final contentType = _mimeType(uploadPath);
-
-      // Step 1: presigned upload URL 요청
-      final res = await _dio.post(
-        ApiEndpoints.mediaUpload,
-        data: {'content_type': contentType, 'file_size': fileSize},
-        options: Options(headers: {'Content-Type': 'application/json'}),
-      );
-      final uploadUrl = res.data['data']['upload_url'] as String?;
-      final publicUrl = res.data['data']['public_url'] as String?;
-      if (uploadUrl == null || publicUrl == null) return null;
-
-      // Step 2: presigned URL에 파일 바이너리 직접 PUT
-      // - 별도 Dio 인스턴스 사용 → 인증 인터셉터/기본 헤더 미포함
-      // - Stream 대신 Uint8List 직접 전송 → Content-Length 보장
-      final bytes = await file.readAsBytes(); // 압축된 파일 바이트
-      final putDio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 60),
-        receiveTimeout: const Duration(seconds: 60),
-      ));
-      final putRes = await putDio.put<void>(
-        uploadUrl,
-        data: bytes,
-        options: Options(
-          contentType: contentType,
-          headers: {'Content-Length': bytes.length},
-        ),
-      );
-      if (putRes.statusCode != 200 && putRes.statusCode != 204) {
-        debugPrint('[Media] presigned PUT failed: ${putRes.statusCode}');
-        _deleteTempFile(uploadPath, filePath);
-        return null;
-      }
-      assert(() {
-        debugPrint('[Media] PUT success → public_url=$publicUrl');
-        return true;
-      }());
-
-      // 압축으로 생성된 임시 파일 삭제 (원본은 유지).
-      _deleteTempFile(uploadPath, filePath);
-      return publicUrl;
-    } catch (e) {
-      debugPrint('[Media] uploadPhoto error: $e');
-      return null;
-    }
-  }
-
-  /// 압축 temp 파일만 삭제. 원본([originalPath])과 같은 경로면 건드리지 않음.
-  static void _deleteTempFile(String uploadPath, String originalPath) {
-    if (uploadPath == originalPath) return;
-    try {
-      File(uploadPath).deleteSync();
-    } catch (_) {
-      // 삭제 실패는 무시 — OS가 temp 디렉토리를 자체적으로 정리
-    }
-  }
-
-  static String _mimeType(String path) {
-    final ext = path.split('.').last.toLowerCase();
-    return switch (ext) {
-      'png' => 'image/png',
-      'gif' => 'image/gif',
-      'webp' => 'image/webp',
-      _ => 'image/jpeg',
-    };
-  }
+  /// dot 사진 업로드 — 공용 [MediaUploadService] 에 위임.
+  /// dot 은 스코프 없이 업로드(BE 기본 위치). 코스 커버/항목 사진은
+  /// todo 쪽에서 스코프(purpose/todoListId/itemId)를 실어 호출한다.
+  Future<String?> uploadPhoto(String filePath) =>
+      MediaUploadService(_dio).upload(filePath);
 
   /// dot 업로드 — date 기반으로 서버가 daylog 자동 생성/조회.
   /// 성공 시 (dayLogId, dotId) 반환. 네트워크 실패(오프라인) 시 (null, null) —
   /// 호출자가 로컬 폴백. **서버가 응답한 4xx 비즈니스 에러는 [DotUploadException]
   /// 으로 throw** — 사용자에게 안내해야 함 (예: `INVALID_TAG_FORMAT`).
-  Future<({String? dayLogId, String? dotId})> uploadDot(Dot dot) async {
+  Future<({String? dayLogId, String? dotId, List<String>? sharedRoomIds})>
+      uploadDot(Dot dot) async {
     try {
       final local = dot.timestamp.toLocal();
       final date =
@@ -115,6 +47,8 @@ class DotRemoteSource {
         if (dot.placeId != null) 'place_id': dot.placeId, // B8
         if (dot.photoUrl != null && dot.photoUrl!.isNotEmpty)
           'photo_url': dot.photoUrl,
+        // 방 공유 선택 — null 이면 생략(auto_share), []/[ids] 면 그대로 전송.
+        if (dot.sharedRoomIds != null) 'room_ids': dot.sharedRoomIds,
       });
       // 응답 body 에 위/경도·장소명·메모가 담겨 있어 release 로그로 새면 안 됨.
       assert(() {
@@ -133,11 +67,13 @@ class DotRemoteSource {
       }
       final dayLogId = data?['day_log_id'] as String?;
       final dotId = data?['id'] as String?;
+      final sharedRoomIds = _parseSharedRoomIds(data?['shared_room_ids']);
       assert(() {
-        debugPrint('[uploadDot] parsed dayLogId=$dayLogId dotId=$dotId');
+        debugPrint('[uploadDot] parsed dayLogId=$dayLogId dotId=$dotId '
+            'sharedRoomIds=$sharedRoomIds');
         return true;
       }());
-      return (dayLogId: dayLogId, dotId: dotId);
+      return (dayLogId: dayLogId, dotId: dotId, sharedRoomIds: sharedRoomIds);
     } on DioException catch (e, st) {
       // 4xx — 서버가 응답한 비즈니스 에러: typed exception 으로 변환해 caller 에 전파.
       // FE 가 사전 정규화하므로 `INVALID_TAG_FORMAT` 등은 거의 발생하지 않지만,
@@ -154,11 +90,25 @@ class DotRemoteSource {
       }
       // 네트워크 오류(타임아웃 등) → 오프라인 폴백.
       debugPrint('[uploadDot] network error → offline fallback: $e\n$st');
-      return (dayLogId: null, dotId: null);
+      return (dayLogId: null, dotId: null, sharedRoomIds: null);
     } catch (e, st) {
       debugPrint('[uploadDot] unexpected: $e\n$st');
-      return (dayLogId: null, dotId: null);
+      return (dayLogId: null, dotId: null, sharedRoomIds: null);
     }
+  }
+
+  /// 방 선택을 batch 그룹 키로 정규화. null=auto(생략) / 빈=개인 / 특정방(정렬).
+  static String _roomKey(List<String>? ids) {
+    if (ids == null) return 'auto';
+    if (ids.isEmpty) return 'private';
+    final sorted = [...ids]..sort();
+    return 'r:${sorted.join(",")}';
+  }
+
+  /// 응답의 `shared_room_ids` → `List<String>`. 없으면 null.
+  static List<String>? _parseSharedRoomIds(dynamic raw) {
+    if (raw is! List) return null;
+    return raw.whereType<String>().toList(growable: false);
   }
 
   static String? _extractErrorCode(DioException e) {
@@ -549,18 +499,26 @@ class DotRemoteSource {
   /// 무한 retry 를 막아야 함.
   Future<BatchSyncResult> batchSyncDots(List<Dot> dots) async {
     if (dots.isEmpty) return const BatchSyncResult.empty();
-    // timestamp 기준으로 날짜별 그룹화 (day_log_id 대신 date 사용)
+    // 날짜별 + 방 선택별 그룹화. batch 는 요청 1건에 room_ids 하나만 적용되므로,
+    // 같은 날짜라도 방 선택(auto/개인/특정방)이 다르면 별도 요청으로 나눠 보낸다.
     final grouped = <String, List<Dot>>{};
     for (final d in dots) {
       final local = d.timestamp.toLocal();
       final dateKey =
           '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
-      (grouped[dateKey] ??= []).add(d);
+      final groupKey = '$dateKey|${_roomKey(d.sharedRoomIds)}';
+      (grouped[groupKey] ??= []).add(d);
     }
     final synced = <String>{};
     final clientToServer = <String, String>{};
     final failed = <BatchSyncFailure>[];
     for (final entry in grouped.entries) {
+      // 그룹 내 dot 은 같은 날짜/방선택 — 대표값을 첫 dot 에서 얻는다.
+      final head = entry.value.first;
+      final local = head.timestamp.toLocal();
+      final dateStr =
+          '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+      final roomIds = head.sharedRoomIds; // null=생략(auto), []=개인, [ids]=특정
       // 이번 batch 가 실제로 보낸 client_id set — BE 응답이 다른 id 를 echo
       // 하더라도 해당 id 가 우리가 안 보낸 거면 무시 (defense-in-depth).
       final sentIds = entry.value.map((d) => d.id).toSet();
@@ -568,7 +526,8 @@ class DotRemoteSource {
         final res = await _dio.post(
           ApiEndpoints.dotsBatch,
           data: {
-            'date': entry.key,
+            'date': dateStr,
+            if (roomIds != null) 'room_ids': roomIds,
             'dots': entry.value
                 .map((d) => {
                       'client_id': d.id,

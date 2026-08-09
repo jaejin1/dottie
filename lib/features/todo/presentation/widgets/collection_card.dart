@@ -38,6 +38,38 @@ class _SharedBadge extends StatelessWidget {
   }
 }
 
+/// 방에 연결된 코스임을 표시 — 방 멤버가 함께 쓰는 스팟.
+class _RoomBadge extends StatelessWidget {
+  const _RoomBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: DottieColors.secondary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.home_work_outlined,
+              size: 9, color: DottieColors.secondary.withValues(alpha: 0.85)),
+          const SizedBox(width: 2),
+          Text(
+            '방',
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: DottieColors.secondary.withValues(alpha: 0.9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MemberAvatarRow extends StatelessWidget {
   const _MemberAvatarRow({required this.list});
   final TodoList list;
@@ -97,6 +129,81 @@ class _MemberAvatarRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// 좌측 썸네일 — 커버 사진 있으면 사진, 없으면 코스색 tinted 이모지 배지.
+class _CoverThumb extends StatelessWidget {
+  const _CoverThumb({required this.list, required this.color});
+  final TodoList list;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = list.coverImageUrl;
+    final hasCover = url != null && url.isNotEmpty;
+    if (!hasCover) return _emoji();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+        cacheWidth: 132, // 44 * 3(devicePixelRatio 여유)
+        // 로딩/에러 시 이모지 배지로 graceful degrade — 회색 박스 안 보이게.
+        errorBuilder: (_, __, ___) => _emoji(),
+        frameBuilder: (_, child, frame, wasSync) =>
+            wasSync || frame != null ? child : _emoji(),
+      ),
+    );
+  }
+
+  Widget _emoji() => Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          list.coverEmoji ?? '📍',
+          style: const TextStyle(fontSize: 22),
+        ),
+      );
+}
+
+/// 공개 코스 배지 — 둘러보기에 노출 중임을 리스트에서 바로 식별.
+/// 비공개(기본값)엔 배지 없음 → 노이즈 최소화, "배지 있음 = 공개".
+class _PublicBadge extends StatelessWidget {
+  const _PublicBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: DottieColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.public,
+              size: 9, color: DottieColors.success.withValues(alpha: 0.9)),
+          const SizedBox(width: 2),
+          Text(
+            '공개',
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: DottieColors.success.withValues(alpha: 0.95),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -174,20 +281,8 @@ class CollectionCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: Row(
               children: [
-                // 이모지 배지 — 컬렉션 색으로 살짝 tinted.
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    list.coverEmoji ?? '📍',
-                    style: const TextStyle(fontSize: 22),
-                  ),
-                ),
+                // 좌측 썸네일 — 커버 사진 있으면 사진, 없으면 이모지 배지.
+                _CoverThumb(list: list, color: color),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -211,6 +306,14 @@ class CollectionCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           _ModeBadge(isTrip: isTrip, color: color),
+                          if (list.isPublic) ...[
+                            const SizedBox(width: 4),
+                            const _PublicBadge(),
+                          ],
+                          if (list.roomId != null) ...[
+                            const SizedBox(width: 4),
+                            const _RoomBadge(),
+                          ],
                           if (list.isShared) ...[
                             const SizedBox(width: 4),
                             _SharedBadge(memberCount: list.members.length),

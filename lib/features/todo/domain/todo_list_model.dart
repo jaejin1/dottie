@@ -60,6 +60,14 @@ class TodoList with _$TodoList {
     // 스팟 탭 상단 고정. BE: is_pinned / pin_order.
     @JsonKey(name: 'is_pinned') @Default(false) bool isPinned,
     @JsonKey(name: 'pin_order') @Default(0) int pinOrder,
+    // Phase 2 — 공개/좋아요. BE 계산값.
+    //   likeCount: 좋아요 수. likedByMe: 현재 유저 좋아요 여부(비인증 공개 조회 시 false).
+    //   region: 대표 지역(Phase 2 에선 항상 null, Phase 3 에서 채워짐 — 표시 전용).
+    @JsonKey(name: 'like_count', defaultValue: 0) @Default(0) int likeCount,
+    @JsonKey(name: 'liked_by_me', defaultValue: false)
+    @Default(false)
+    bool likedByMe,
+    @JsonKey(name: 'region') String? region,
   }) = _TodoList;
 
   factory TodoList.fromJson(Map<String, dynamic> json) =>
@@ -68,6 +76,9 @@ class TodoList with _$TodoList {
 
 extension TodoListX on TodoList {
   bool get isTrip => courseType == 'trip';
+
+  /// 공개 코스 여부 — 비멤버 read-only 열람 + 좋아요 대상.
+  bool get isPublic => visibility == 'public';
 
   /// 공유 코스 여부 — 멤버가 2명 이상(소유자 + 1명).
   bool get isShared => members.length > 1;

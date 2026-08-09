@@ -19,6 +19,10 @@ Dot dotFromApi(Map<String, dynamic> d) {
   final tags = (rawTags is List)
       ? rawTags.whereType<String>().toList(growable: false)
       : const <String>[];
+  final rawSharedRooms = d['shared_room_ids'];
+  final sharedRoomIds = (rawSharedRooms is List)
+      ? rawSharedRooms.whereType<String>().toList(growable: false)
+      : null;
   return Dot(
     id: d['id'] as String,
     latitude: (d['latitude'] as num).toDouble(),
@@ -40,5 +44,6 @@ Dot dotFromApi(Map<String, dynamic> d) {
     lastCommentedAt:
         lastCommentedRaw != null ? DateTime.parse(lastCommentedRaw) : null,
     tags: tags,
+    sharedRoomIds: sharedRoomIds,
   );
 }

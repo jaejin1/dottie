@@ -55,7 +55,15 @@ mixin _$Dot {
   Place? get place =>
       throw _privateConstructorUsedError; // 메모에서 추출된 해시태그 (정규화: lowercase, 30자, 최대 10개).
   // BE 가 권위 — FE 는 입력 시 prefilter 만 하고, 응답을 신뢰.
-  List<String> get tags => throw _privateConstructorUsedError;
+  List<String> get tags =>
+      throw _privateConstructorUsedError; // 이 dot 을 공유할/공유된 방 목록.
+  //   - null      → 방 선택 안 함(생략). BE 가 auto_share 켜진 방들로 자동 공유.
+  //   - []        → 개인 dot. 어느 방에도 안 올림.
+  //   - [id, ...] → 지정한 방에만 공유 (auto_share 무시).
+  // 요청(선택 의도)과 응답(실제 공유된 방)에 모두 쓰임 — 업로드 성공 후
+  // BE 가 돌려준 실제 목록으로 갱신한다.
+  @JsonKey(name: 'shared_room_ids')
+  List<String>? get sharedRoomIds => throw _privateConstructorUsedError;
 
   /// Serializes this Dot to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -90,6 +98,7 @@ abstract class $DotCopyWith<$Res> {
     String? placeId,
     Place? place,
     List<String> tags,
+    @JsonKey(name: 'shared_room_ids') List<String>? sharedRoomIds,
   });
 
   $PlaceCopyWith<$Res>? get place;
@@ -127,6 +136,7 @@ class _$DotCopyWithImpl<$Res, $Val extends Dot> implements $DotCopyWith<$Res> {
     Object? placeId = freezed,
     Object? place = freezed,
     Object? tags = null,
+    Object? sharedRoomIds = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -202,6 +212,10 @@ class _$DotCopyWithImpl<$Res, $Val extends Dot> implements $DotCopyWith<$Res> {
                 ? _value.tags
                 : tags // ignore: cast_nullable_to_non_nullable
                       as List<String>,
+            sharedRoomIds: freezed == sharedRoomIds
+                ? _value.sharedRoomIds
+                : sharedRoomIds // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
           )
           as $Val,
     );
@@ -247,6 +261,7 @@ abstract class _$$DotImplCopyWith<$Res> implements $DotCopyWith<$Res> {
     String? placeId,
     Place? place,
     List<String> tags,
+    @JsonKey(name: 'shared_room_ids') List<String>? sharedRoomIds,
   });
 
   @override
@@ -282,6 +297,7 @@ class __$$DotImplCopyWithImpl<$Res> extends _$DotCopyWithImpl<$Res, _$DotImpl>
     Object? placeId = freezed,
     Object? place = freezed,
     Object? tags = null,
+    Object? sharedRoomIds = freezed,
   }) {
     return _then(
       _$DotImpl(
@@ -357,6 +373,10 @@ class __$$DotImplCopyWithImpl<$Res> extends _$DotCopyWithImpl<$Res, _$DotImpl>
             ? _value._tags
             : tags // ignore: cast_nullable_to_non_nullable
                   as List<String>,
+        sharedRoomIds: freezed == sharedRoomIds
+            ? _value._sharedRoomIds
+            : sharedRoomIds // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
       ),
     );
   }
@@ -384,7 +404,9 @@ class _$DotImpl implements _Dot {
     this.placeId,
     this.place,
     final List<String> tags = const <String>[],
-  }) : _tags = tags;
+    @JsonKey(name: 'shared_room_ids') final List<String>? sharedRoomIds,
+  }) : _tags = tags,
+       _sharedRoomIds = sharedRoomIds;
 
   factory _$DotImpl.fromJson(Map<String, dynamic> json) =>
       _$$DotImplFromJson(json);
@@ -453,9 +475,32 @@ class _$DotImpl implements _Dot {
     return EqualUnmodifiableListView(_tags);
   }
 
+  // 이 dot 을 공유할/공유된 방 목록.
+  //   - null      → 방 선택 안 함(생략). BE 가 auto_share 켜진 방들로 자동 공유.
+  //   - []        → 개인 dot. 어느 방에도 안 올림.
+  //   - [id, ...] → 지정한 방에만 공유 (auto_share 무시).
+  // 요청(선택 의도)과 응답(실제 공유된 방)에 모두 쓰임 — 업로드 성공 후
+  // BE 가 돌려준 실제 목록으로 갱신한다.
+  final List<String>? _sharedRoomIds;
+  // 이 dot 을 공유할/공유된 방 목록.
+  //   - null      → 방 선택 안 함(생략). BE 가 auto_share 켜진 방들로 자동 공유.
+  //   - []        → 개인 dot. 어느 방에도 안 올림.
+  //   - [id, ...] → 지정한 방에만 공유 (auto_share 무시).
+  // 요청(선택 의도)과 응답(실제 공유된 방)에 모두 쓰임 — 업로드 성공 후
+  // BE 가 돌려준 실제 목록으로 갱신한다.
+  @override
+  @JsonKey(name: 'shared_room_ids')
+  List<String>? get sharedRoomIds {
+    final value = _sharedRoomIds;
+    if (value == null) return null;
+    if (_sharedRoomIds is EqualUnmodifiableListView) return _sharedRoomIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
   @override
   String toString() {
-    return 'Dot(id: $id, latitude: $latitude, longitude: $longitude, timestamp: $timestamp, placeName: $placeName, placeCategory: $placeCategory, photoUrl: $photoUrl, photoThumbUrl: $photoThumbUrl, photoPreviewUrl: $photoPreviewUrl, memo: $memo, emotion: $emotion, dayLogId: $dayLogId, synced: $synced, commentCount: $commentCount, lastCommentedAt: $lastCommentedAt, placeId: $placeId, place: $place, tags: $tags)';
+    return 'Dot(id: $id, latitude: $latitude, longitude: $longitude, timestamp: $timestamp, placeName: $placeName, placeCategory: $placeCategory, photoUrl: $photoUrl, photoThumbUrl: $photoThumbUrl, photoPreviewUrl: $photoPreviewUrl, memo: $memo, emotion: $emotion, dayLogId: $dayLogId, synced: $synced, commentCount: $commentCount, lastCommentedAt: $lastCommentedAt, placeId: $placeId, place: $place, tags: $tags, sharedRoomIds: $sharedRoomIds)';
   }
 
   @override
@@ -491,12 +536,16 @@ class _$DotImpl implements _Dot {
                 other.lastCommentedAt == lastCommentedAt) &&
             (identical(other.placeId, placeId) || other.placeId == placeId) &&
             (identical(other.place, place) || other.place == place) &&
-            const DeepCollectionEquality().equals(other._tags, _tags));
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            const DeepCollectionEquality().equals(
+              other._sharedRoomIds,
+              _sharedRoomIds,
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     id,
     latitude,
@@ -516,7 +565,8 @@ class _$DotImpl implements _Dot {
     placeId,
     place,
     const DeepCollectionEquality().hash(_tags),
-  );
+    const DeepCollectionEquality().hash(_sharedRoomIds),
+  ]);
 
   /// Create a copy of Dot
   /// with the given fields replaced by the non-null parameter values.
@@ -552,6 +602,7 @@ abstract class _Dot implements Dot {
     final String? placeId,
     final Place? place,
     final List<String> tags,
+    @JsonKey(name: 'shared_room_ids') final List<String>? sharedRoomIds,
   }) = _$DotImpl;
 
   factory _Dot.fromJson(Map<String, dynamic> json) = _$DotImpl.fromJson;
@@ -604,7 +655,15 @@ abstract class _Dot implements Dot {
   Place? get place; // 메모에서 추출된 해시태그 (정규화: lowercase, 30자, 최대 10개).
   // BE 가 권위 — FE 는 입력 시 prefilter 만 하고, 응답을 신뢰.
   @override
-  List<String> get tags;
+  List<String> get tags; // 이 dot 을 공유할/공유된 방 목록.
+  //   - null      → 방 선택 안 함(생략). BE 가 auto_share 켜진 방들로 자동 공유.
+  //   - []        → 개인 dot. 어느 방에도 안 올림.
+  //   - [id, ...] → 지정한 방에만 공유 (auto_share 무시).
+  // 요청(선택 의도)과 응답(실제 공유된 방)에 모두 쓰임 — 업로드 성공 후
+  // BE 가 돌려준 실제 목록으로 갱신한다.
+  @override
+  @JsonKey(name: 'shared_room_ids')
+  List<String>? get sharedRoomIds;
 
   /// Create a copy of Dot
   /// with the given fields replaced by the non-null parameter values.

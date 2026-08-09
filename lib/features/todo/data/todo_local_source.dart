@@ -55,6 +55,8 @@ class TodoLocalSource {
         ),
         isPinned: Value(list.isPinned),
         pinOrder: Value(list.pinOrder),
+        likeCount: Value(list.likeCount),
+        region: Value(list.region),
       ));
 
   Future<int> deleteTodoListById(String id) => _db.deleteTodoListById(id);
@@ -178,6 +180,8 @@ class TodoLocalSource {
         membersJson: Value(existing.membersJson),
         isPinned: Value(existing.isPinned),
         pinOrder: Value(existing.pinOrder),
+        likeCount: Value(existing.likeCount),
+        region: Value(existing.region),
       ));
     });
   }
@@ -255,6 +259,10 @@ class TodoLocalSource {
       members: members,
       isPinned: row.isPinned,
       pinOrder: row.pinOrder,
+      likeCount: row.likeCount,
+      region: row.region,
+      // likedByMe 는 영속하지 않음 — 사용자별 transient. 상세 화면은 원격 응답을
+      // 직접 반환하므로 정확하고, 목록 카드는 하트 채움을 쓰지 않는다.
     );
   }
 

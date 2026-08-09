@@ -111,14 +111,28 @@ class ApiEndpoints {
   // cursor 페이지네이션 — query: ?limit=20&cursor=<opaque>&room_id=<uuid?>
   // 응답: { data: { dots: [{ ...dot, user_id, user_nickname, user_color_hex, shared_room_ids }], next_cursor } }
   static const String feed = '/feed';
+  // 홈 피드용 트렌딩 코스 추천 스트립 — top-N(커서 없음), discover 카드 재사용.
+  // query: ?limit=10 (1~20). 응답: { data: { courses: [DiscoverCourse] } }
+  static const String feedCourses = '/feed/courses';
 
   // ── 할일 (Todo) ──────────────────────────────────────
   static const String todoLists = '/todo-lists';
   static String todoListById(String id) => '/todo-lists/$id';
   static String todoListPin(String id) => '/todo-lists/$id/pin';
+  // Phase 2 — 좋아요 토글 (POST 등록 / DELETE 취소, 멱등).
+  static String todoListLike(String id) => '/todo-lists/$id/like';
+  // 커버 사진 설정/해제 — 전용 엔드포인트(R2 스코프 URL 검증).
+  static String todoListCover(String id) => '/todo-lists/$id/cover';
+  // Phase 3 — 공개 디스커버리 / 가져오기(복제) / 신고.
+  static const String discoverCourses = '/discover/courses';
+  static String todoListClone(String id) => '/todo-lists/$id/clone';
+  static String todoListReport(String id) => '/todo-lists/$id/report';
   static String todoListItems(String id) => '/todo-lists/$id/items';
   static String todoItemById(String listId, String itemId) =>
       '/todo-lists/$listId/items/$itemId';
+  // per-user 항목 고정 전용 (일반 항목 PATCH 는 is_pinned 무시).
+  static String todoItemPin(String listId, String itemId) =>
+      '/todo-lists/$listId/items/$itemId/pin';
   static String todoItemsReorder(String listId) =>
       '/todo-lists/$listId/items/reorder';
   static String todoItemCheckIn(String listId, String itemId) =>

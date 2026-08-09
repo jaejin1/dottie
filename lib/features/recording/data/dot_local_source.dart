@@ -76,6 +76,7 @@ class DotLocalSource {
         emotion: Value(dot.emotion),
         dayLogId: dot.dayLogId,
         tagsJson: Value(jsonEncode(dot.tags)),
+        sharedRoomIdsJson: Value(_encodeRoomIds(dot.sharedRoomIds)),
         synced: const Value(true),
       ));
     }
@@ -83,8 +84,12 @@ class DotLocalSource {
 
   // ── Dot ──
 
+  /// dot 로컬 저장. 멱등(upsert) — 서버가 발급한 dotId 가 로컬에 이미 있는
+  /// 경우(직전 dot 의 restoreTodayFromServer 폴링 / 백그라운드 자동기록이 먼저
+  /// 캐시했을 때)에도 plain INSERT 의 UNIQUE 제약 예외 없이 조용히 갱신한다.
+  /// (이 예외가 online uploadDot 성공 이후 발생하면 "위치 수집 실패" 오탐이 났음.)
   Future<void> insertDot(Dot dot) async {
-    await _db.insertDot(DotTableCompanion.insert(
+    await _db.upsertDot(DotTableCompanion.insert(
       id: dot.id,
       latitude: dot.latitude,
       longitude: dot.longitude,
@@ -98,6 +103,7 @@ class DotLocalSource {
       emotion: Value(dot.emotion),
       dayLogId: dot.dayLogId,
       tagsJson: Value(jsonEncode(dot.tags)),
+      sharedRoomIdsJson: Value(_encodeRoomIds(dot.sharedRoomIds)),
       synced: Value(dot.synced),
     ));
   }
@@ -162,6 +168,7 @@ class DotLocalSource {
         emotion: row.emotion,
         dayLogId: row.dayLogId,
         tags: _decodeTags(row.tagsJson),
+        sharedRoomIds: _decodeRoomIds(row.sharedRoomIdsJson),
         synced: row.synced,
       );
 
@@ -174,6 +181,22 @@ class DotLocalSource {
       }
     } catch (_) {}
     return const [];
+  }
+
+  /// 방 공유 선택 직렬화. null(미지정)은 null 로 보존 — '[]'(개인) 과 구분해야
+  /// batch sync 시 room_ids 를 생략(auto_share)할지 빈 배열(개인)로 보낼지 결정된다.
+  static String? _encodeRoomIds(List<String>? ids) =>
+      ids == null ? null : jsonEncode(ids);
+
+  static List<String>? _decodeRoomIds(String? raw) {
+    if (raw == null) return null;
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is List) {
+        return parsed.whereType<String>().toList(growable: false);
+      }
+    } catch (_) {}
+    return null;
   }
 
   // DayLogTableData → DayLog 변환
